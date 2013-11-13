@@ -1,12 +1,14 @@
 '''
 Title: Insert OMS Logs into oms_logging db
 Created: May 7, 2013
-Modified: August 29, 2013
+Modified: October 7, 2013
 
 @author: williamg
 
-@version: 0.28
+@version: 0.29
 '''
+
+import sys
 
 def createLoggingSchema(db=None, schema=None):
     """
@@ -25,13 +27,13 @@ def createLoggingSchema(db=None, schema=None):
             import psycopg2 as psy
         except:
             print("Failed to import python-postgresql drivers.")
-            exit()
+            sys.exit()
         
         try:
             import datetime as dt
         except:
             print("Failed to import datetime module.")
-            exit()
+            sys.exit()
             
         try:
             conn_string = "host='localhost' dbname='"+db+"' user='postgres' password='usouth'"
@@ -43,9 +45,9 @@ def createLoggingSchema(db=None, schema=None):
             
         except:
             print("Failed to create connection to database.")
-            exit()
+            sys.exit()
 
-def backupOMSLogs(db=None, schema=None, archive=None):
+def backupOMSLogs(host=None, db=None, schema=None, archive=None):
     """
     Function to backup the schema for log files
     
@@ -55,6 +57,8 @@ def backupOMSLogs(db=None, schema=None, archive=None):
     
     """
     errors = tuple()
+    if host is None:
+        errors += ("Host not supplied",)
     if db is None:
         errors += ("database not supplied",)
     if schema is None:
@@ -70,16 +74,16 @@ def backupOMSLogs(db=None, schema=None, archive=None):
             import psycopg2 as psy
         except:
             print("Failed to import python-postgresql drivers.")
-            exit()
+            return -4
         
         try:
             import datetime as dt
         except:
             print("Failed to import datetime module.")
-            exit()
+            return -3
             
     try:
-        conn_string = "host='localhost' dbname='" + db + "' user='postgres' password='usouth'"
+        conn_string = "host='" + host + "' dbname='" + db + "' user='postgres' password='usouth'"
         conn = psy.connect(conn_string)
         cursor = conn.cursor()
         curtime = dt.datetime.now()
@@ -107,7 +111,7 @@ def backupOMSLogs(db=None, schema=None, archive=None):
         return -1
     
 
-def importLogfiles(db=None, schema=None, f=None, rename=True):
+def importLogfiles(host=None, db=None, schema=None, f=None, rename=True):
     """ 
     Parse supplied logfile (f) and insert into provided database (db)
     @var db: the database to insert the logfile contents
@@ -124,6 +128,8 @@ def importLogfiles(db=None, schema=None, f=None, rename=True):
         exit()
 
     errors = tuple()
+    if host is None:
+        errors += ("host not supplied",)
     if db is None:
         errors += ("database not supplied",)
     if f is None:
@@ -135,7 +141,7 @@ def importLogfiles(db=None, schema=None, f=None, rename=True):
         return errors
     else:
         import re
-        conn_string = "host='localhost' dbname='" + db + "' user='postgres' password='usouth'"
+        conn_string = "host='" + host + "' dbname='" + db + "' user='postgres' password='usouth'"
         conn = psy.connect(conn_string)
         cursor = conn.cursor()
         
@@ -188,7 +194,7 @@ def importLogfiles(db=None, schema=None, f=None, rename=True):
             
         return "    Completed file " + f
 
-def importLogs(db=None, logfile=None, rename=True):
+def importLogs(host=None, db=None, logfile=None, rename=True):
     if logfile is None:
         print("No file was provided. Exiting...")
         exit()
@@ -222,7 +228,7 @@ def importLogs(db=None, logfile=None, rename=True):
         for f in logfiles: 
             try:
                 objmodel_starttime = dt.datetime.now()
-                print(importLogfiles(db, 'oms_logfiles', f, rename))
+                print(importLogfiles(host, db, 'oms_logfiles', f, rename))
                 objectmodel_run_time = dt.datetime.now()
                 print("    Imported in " + str(objectmodel_run_time-objmodel_starttime))
             except:
@@ -232,7 +238,8 @@ def importLogs(db=None, logfile=None, rename=True):
 
 if __name__ == "__main__":
     # Update the database before running the utility --What does this mean? wg on 2013-09-19
-    db = 'oms_coos_curry'
+    host = 'omsprod'
+    db = 'inland_20130926'
     logfile_schema = 'oms_logfiles'
     archive_schema = 'oms_archives'
     renameFile = True
@@ -241,18 +248,14 @@ if __name__ == "__main__":
     import datetime as dt
     starttime = dt.datetime.now()
     print("Started Existing Log Backup Process: " + str(starttime))
-    backup = backupOMSLogs(db, logfile_schema, archive_schema)
+    backup = backupOMSLogs(host, db, logfile_schema, archive_schema)
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
-        #=======================================================================
-        # importLogs(db, "C:\\omsprint\\Logs\\ObjectModel\\objectmodel.log", renameFile)
-        # importLogs(db, "C:\\omsprint\\Logs\\OMSClient\\omsclient.log", renameFile)
-        # importLogs(db, "C:\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\savedata.log", renameFile)
-        #=======================================================================
-        importLogs(db, "C:\\map_files\\Logs\\ObjectModel\\objectmodel.log", renameFile)
-        importLogs(db, "C:\\map_files\\Logs\\OMSClient\\omsclient.log", renameFile)
-        importLogs(db, "C:\\map_files\\Logs\\SaveData\\savedata.log", renameFile)
+        importLogs(host, db, "\\\\omsprod\\c$\\omsprint\\Logs\\ObjectModel\\objectmodel.log", renameFile)
+        importLogs(host, db, "\\\\omsprod\\c$\\omsprint\\Logs\\OMSClient\\omsclient.log", renameFile)
+        importLogs(host, db, "\\\\omsprod\\C$\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\Savedata\\savedata.log", renameFile)
+
         
         endtime = dt.datetime.now()
     else:
