@@ -1,11 +1,11 @@
 '''
 Title: Insert OMS Logs into oms_logging db
 Created: May 7, 2013
-Modified: July 18, 2013
+Modified: August 29, 2013
 
 @author: williamg
 
-@version: 0.25
+@version: 0.28
 '''
 
 def createLoggingSchema(db=None, schema=None):
@@ -84,28 +84,30 @@ def backupOMSLogs(db=None, schema=None, archive=None):
         cursor = conn.cursor()
         curtime = dt.datetime.now()
         backup_tbl = str(curtime).replace(' ','_').replace('-','').replace(':','').replace('.','')
-        truncate = False
+        #truncate = False
         try:
             sql_omslogs = "SELECT * INTO {0}.log_{1}_omslogs from {2}.omslogs;".format(archive, backup_tbl, schema)
             #print(sql)
             cursor.execute(sql_omslogs)
             conn.commit()
-            truncate = True
+            #truncate = True
         except:
             print("Failed to backup oms_logfiles.omslogs")
             return -2
             
-        if truncate:
-            cursor.execute("TRUNCATE {0}.omslogs;".format(schema))
-            conn.commit()
-            return 1
-        #return 1
+        #=======================================================================
+        # if truncate:
+        #     cursor.execute("TRUNCATE {0}.omslogs;".format(schema))
+        #     conn.commit()
+        #     return 1
+        #=======================================================================
+        return 1
     
     except:
         return -1
     
 
-def importLogfiles(db=None, schema=None, f=None):
+def importLogfiles(db=None, schema=None, f=None, rename=True):
     """ 
     Parse supplied logfile (f) and insert into provided database (db)
     @var db: the database to insert the logfile contents
@@ -154,10 +156,10 @@ def importLogfiles(db=None, schema=None, f=None):
                     last_values['time_'] = time_
                     if line.find(": ",26) == -1:
                         category = 'unknown'
-                        message = line[26:]
+                        message = line[27:]
                     else:
                         category = line[26:line.find(": ",26)]
-                        message = line[line.find(": ",26):].replace('\n', '')
+                        message = line[line.find(": ",27)+2:].replace('\n', '')
                     try:
                         sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
@@ -178,14 +180,15 @@ def importLogfiles(db=None, schema=None, f=None):
         try:
             fileinfo = os.path.split(f)
             destination = fileinfo[0] + os.sep + "logged_" + curtime + "_" + fileinfo[1]
-            os.rename(f, destination)
-            print("    Renamed " + f + " to logged_" + curtime + "_" + fileinfo[1])
+            if rename:
+                os.rename(f, destination)
+                print("    Renamed " + f + " to logged_" + curtime + "_" + fileinfo[1])
         except:
             print("    Could not rename log file: " + f)
             
         return "    Completed file " + f
 
-def importLogs(logfile=None):
+def importLogs(db=None, logfile=None, rename=True):
     if logfile is None:
         print("No file was provided. Exiting...")
         exit()
@@ -199,8 +202,8 @@ def importLogs(logfile=None):
     
     if logfileExists == False:
         #print a statement that file path provided is not useful then exit
-        print("File provided could not be found. Exiting...")
-        exit()
+        print("No files available for import. ")
+        return None
     
     #Adding wildcard to path for glob.iglob to find all files with matching basename    
     logfile += "*"
@@ -219,7 +222,7 @@ def importLogs(logfile=None):
         for f in logfiles: 
             try:
                 objmodel_starttime = dt.datetime.now()
-                print(importLogfiles('omsprod', 'oms_logfiles', f))
+                print(importLogfiles(db, 'oms_logfiles', f, rename))
                 objectmodel_run_time = dt.datetime.now()
                 print("    Imported in " + str(objectmodel_run_time-objmodel_starttime))
             except:
@@ -228,16 +231,28 @@ def importLogs(logfile=None):
         print("No new logs to be inserted!")
 
 if __name__ == "__main__":
+    # Update the database before running the utility --What does this mean? wg on 2013-09-19
+    db = 'oms_coos_curry'
+    logfile_schema = 'oms_logfiles'
+    archive_schema = 'oms_archives'
+    renameFile = True
+    
+    ### Should be no need to modify anything below this line ###
     import datetime as dt
     starttime = dt.datetime.now()
     print("Started Existing Log Backup Process: " + str(starttime))
-    backup = backupOMSLogs('omsprod', 'oms_logfiles', 'oms_archives')
+    backup = backupOMSLogs(db, logfile_schema, archive_schema)
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
-        importLogs("C:\\omsprint\\Logs\\ObjectModel\\objectmodel.log")
-        importLogs("C:\\omsprint\\Logs\\OMSClient\\omsclient.log")
-        importLogs("C:\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\savedata.log")
+        #=======================================================================
+        # importLogs(db, "C:\\omsprint\\Logs\\ObjectModel\\objectmodel.log", renameFile)
+        # importLogs(db, "C:\\omsprint\\Logs\\OMSClient\\omsclient.log", renameFile)
+        # importLogs(db, "C:\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\savedata.log", renameFile)
+        #=======================================================================
+        importLogs(db, "C:\\map_files\\Logs\\ObjectModel\\objectmodel.log", renameFile)
+        importLogs(db, "C:\\map_files\\Logs\\OMSClient\\omsclient.log", renameFile)
+        importLogs(db, "C:\\map_files\\Logs\\SaveData\\savedata.log", renameFile)
         
         endtime = dt.datetime.now()
     else:
