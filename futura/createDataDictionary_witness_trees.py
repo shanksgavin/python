@@ -8,7 +8,7 @@ Modified: October 10, 2013
 
 import arcpy
 import datetime as dt
-import glob
+import glob, os
 
 # Create a timestamp
 curtime = str(dt.datetime.now()).replace(' ','_').replace('-','').replace(':','').replace('.','')
@@ -20,13 +20,13 @@ def createDataDictionary(workspace=None, table_list=[]):
         return -10
     else:
         # test if path is valid and available
-        import os
         if not os.path.exists(workspace):
             print("workspace does not exist.")
             return -12
     
     if len(table_list) == 0:
         arcpy.env.workspace = workspace
+        arcpy.env.overwriteOutput = True
         wksp = arcpy.env.workspace
         print(wksp)
         print("Create a data dictionary on all feature classes and tables within the geodatabase")
@@ -37,18 +37,39 @@ def createDataDictionary(workspace=None, table_list=[]):
     # Get list of all shapefiles
     shapefiles = glob.glob(wksp + os.sep + "*.shp")
     #print(shapefiles)
-    for sf in shapefiles:
-        print(sf)
     
     # Loop thru each table and print the table definition in CSV format
+    for sf in shapefiles:
+        s = os.path.basename(sf)
+        print("Processing {0}".format(s.upper()))
+        
+        #Open CSV file to store data
+        #fo = open(os.path.dirname(sf) + os.sep + s[:-4] + "_" + curtime + ".csv", "w")
+        fo = open(os.path.dirname(sf) + os.sep + s[:-4] + ".csv", "w")
+        fo.write("{0}, {1}, {2}\n".format('', 'COLUMN_NAME', 'DATATYPE', 'IS_NULLABLE'))
+        
+        try:
+            fieldCounter = 1
+            for field in arcpy.ListFields(sf):
+                #print("{0}, {1}, {2}, {3}".format(str(fieldCounter), field.name, field.type, field.isNullable))
+                fo.write("{0}, {1}, {2}, {3}\n".format(str(fieldCounter), field.name, field.type, field.isNullable))
+                fieldCounter += 1
+                
+                #Add a blank line to the CSV file
+                fo.write("\n")
+                
+                try:
+                    #Summarize the data within each field
+                    outStats = os.path.dirname(sf) + os.sep + s[:-4] + "_" + field.name + ".dbf"
+                    arcpy.Statistics_analysis(sf, outStats, [[field.name, "COUNT"]])
+                    #print("    Stats - Count: Complete")
+                except Exception as e:
+                    print("    Failed to calculate stats.\n    " + str(e))
+        except:
+            print("Failed to read shapefile schema.")
+            fo.write("Failed to read shapefile schema.\n")
+        
 #===============================================================================
-#     for tbl in cursorTbl:
-#         if tbl[0] in table_list:
-#             print("Processing {0}".format(tbl[0].upper()))
-# 
-#             fo = open("\\\\orion\\common\\_Docs\\DesignDocuments\\OMS\\Schemas\\ddl_" + tbl[0] + "_" + curtime + ".csv", "w")
-#             fo.write("{0}, {1}, {2}, {3}\n".format('COLUMN_NAME', 'DATATYPE', 'IS_NULLABLE', 'DEFAULT_VALUE'))
-#             
 #             try:
 #                 sql_tblDefinition = """SELECT column_name, data_type, character_maximum_length, column_default, is_nullable, numeric_precision, numeric_scale, datetime_precision
 #                  FROM INFORMATION_SCHEMA.COLUMNS
@@ -133,16 +154,11 @@ def createDataDictionary(workspace=None, table_list=[]):
 #                     else:
 #                         print("~~~~Unknown data type " + found[1])
 #                         fo.write("~~~~Unknown data type \n" + found[1])
-#             except:
-#                 print("Something Failed in the query.")
-#                 fo.write("Something Failed in the query.\n")
-#             
-#             fo.close()
-#===============================================================================
-                
+
+        fo.close()
             
 if __name__ == "__main__":
-    workspace = 'F:\\ksu\\anth4100\\Deliverables'
+    workspace = 'C:\\Users\\williamg\\Documents\\School\\Deliverables'
     createDataDictionary(workspace)
     #createDataDictionary(['callbundles'])
     print("Script Completed.")
