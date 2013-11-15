@@ -75,9 +75,12 @@ def createDataDictionary(workspace=None, table_list=[]):
                             
                         #Print out unique data with count
                         fo.write("{0}, {1}, {2}\n".format('', 'Value', 'Count'))
-                        items = stats.items()
+                        items = stats.keys()
+                        #print("Raw: {0}".format(items))
+                        items.sort()
+                        #print("Sorted: {0}".format(items))
                         for item in items:
-                            fo.write("{0}, {1}, {2}\n".format(str(fieldCounter), item[0], item[1]))
+                            fo.write("{0}, {1}, {2}\n".format(str(fieldCounter), item, str(stats.get(item))))
                             
                     except Exception as e:
                         print("    Failed to calculate stats.\n    " + str(e))
