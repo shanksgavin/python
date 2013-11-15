@@ -45,115 +45,45 @@ def createDataDictionary(workspace=None, table_list=[]):
         
         #Open CSV file to store data
         #fo = open(os.path.dirname(sf) + os.sep + s[:-4] + "_" + curtime + ".csv", "w")
-        fo = open(os.path.dirname(sf) + os.sep + s[:-4] + ".csv", "w")
-        fo.write("{0}, {1}, {2}\n".format('', 'COLUMN_NAME', 'DATATYPE', 'IS_NULLABLE'))
+        fo = open(os.path.dirname(sf) + os.sep + "test" + os.sep + s[:-4] + ".csv", "w")
+        fo.write("{0}, {1}, {2}, {3}\n".format('', 'COLUMN_NAME', 'DATATYPE', 'IS_NULLABLE'))
         
         try:
-            fieldCounter = 1
-            for field in arcpy.ListFields(sf):
-                #print("{0}, {1}, {2}, {3}".format(str(fieldCounter), field.name, field.type, field.isNullable))
-                fo.write("{0}, {1}, {2}, {3}\n".format(str(fieldCounter), field.name, field.type, field.isNullable))
-                fieldCounter += 1
+            fieldCounter = 0
+            fields = arcpy.ListFields(sf)
+            for field in fields:
+                if field.name not in ['FID', 'Shape', 'SHAPE_Leng', 'SHAPE_Area']:
+                    fieldCounter += 1
+                    #print("{0}, {1}, {2}, {3}".format(str(fieldCounter), field.name, field.type, field.isNullable))
+                    fo.write("{0}, {1}, {2}, {3}\n".format(str(fieldCounter), field.name, field.type, field.isNullable))
+                   
+            fieldCounter = 0 
+            for field in fields:
+                if field.name not in ['FID', 'Shape', 'SHAPE_Leng', 'SHAPE_Area']:
+                    fieldCounter += 1
+                    #Add a blank line to the CSV file
+                    fo.write("{0}, {1}\n".format('DATA STATS', field.name))
                 
-                #Add a blank line to the CSV file
-                fo.write("\n")
-                
-                try:
-                    #Summarize the data within each field
-                    outStats = os.path.dirname(sf) + os.sep + s[:-4] + "_" + field.name + ".dbf"
-                    arcpy.Statistics_analysis(sf, outStats, [[field.name, "COUNT"]])
-                    #print("    Stats - Count: Complete")
-                except Exception as e:
-                    print("    Failed to calculate stats.\n    " + str(e))
+                    try:
+                        stats = {}
+                        rows = arcpy.SearchCursor(sf, None, None, field.name)
+                        for row in rows:
+                            if stats.has_key(row.getValue(field.name)):
+                                stats[row.getValue(field.name)] = stats.get(row.getValue(field.name)) + 1
+                            else:
+                                stats[row.getValue(field.name)] = 1
+                            
+                        #Print out unique data with count
+                        fo.write("{0}, {1}, {2}\n".format('', 'Value', 'Count'))
+                        items = stats.items()
+                        for item in items:
+                            fo.write("{0}, {1}, {2}\n".format(str(fieldCounter), item[0], item[1]))
+                            
+                    except Exception as e:
+                        print("    Failed to calculate stats.\n    " + str(e))
         except:
             print("Failed to read shapefile schema.")
             fo.write("Failed to read shapefile schema.\n")
-        
-#===============================================================================
-#             try:
-#                 sql_tblDefinition = """SELECT column_name, data_type, character_maximum_length, column_default, is_nullable, numeric_precision, numeric_scale, datetime_precision
-#                  FROM INFORMATION_SCHEMA.COLUMNS
-#                  WHERE table_name= '""" + tbl[0] + "'"
-#                 # Execute sql to obtain the attribute definitions of each table
-#                 cursorExe.execute(sql_tblDefinition)
-#                 
-#                 #===============================================================
-#                 # alterTable1 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_id serial NOT NULL"
-#                 # alterTable2 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_sql_action character(1) NOT NULL"
-#                 # alterTable3 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_stamp timestamp without time zone NOT NULL"
-#                 # alterTable4 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_user_id text NOT NULL"
-#                 #===============================================================
-#                 for found in cursorExe:
-#                     if found[4] == 'YES':
-#                         nullable = ''
-#                     else:
-#                         nullable = 'NOT NULL'
-#                         
-#                     if found[3] == None:
-#                         default_value = ''
-#                     else:
-#                         default_value = found[3]
-#                         
-#                     if found[1] == 'character varying':
-#                         print("{0}, {1}({2}), {3}, {4}".format(found[0], found[1], found[2], nullable, default_value))
-#                         fo.write("{0}, {1}({2}), {3}, {4}\n".format(found[0], found[1], found[2], nullable, default_value))
-#                     elif found[1] == 'character':
-#                         print("{0}, {1}({2}), {3}, {4}".format(found[0], found[1], found[2], nullable, default_value))
-#                         fo.write("{0}, {1}({2}), {3}, {4}\n".format(found[0], found[1], found[2], nullable, default_value))
-#                     elif found[1] == 'text':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'integer':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'date':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'boolean':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'double precision':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'time without time zone':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'bigint':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'point':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'polygon':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'ARRAY':
-#                         print("{0}, text[]".format(found[0]))
-#                         fo.write("{0}, text[]\n".format(found[0]))
-#                     elif found[1] == 'timestamp with time zone':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'timestamp without time zone':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'smallint':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'path':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'bytea':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'numeric':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     elif found[1] == 'xml':
-#                         print("{0}, {1}, {2}, {3}".format(found[0], found[1], nullable, default_value))
-#                         fo.write("{0}, {1}, {2}, {3}\n".format(found[0], found[1], nullable, default_value))
-#                     else:
-#                         print("~~~~Unknown data type " + found[1])
-#                         fo.write("~~~~Unknown data type \n" + found[1])
 
         fo.close()
             
