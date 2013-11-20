@@ -252,9 +252,9 @@ if __name__ == "__main__":
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
-        importLogs(host, db, "\\\\omsprod\\c$\\omsprint\\Logs\\ObjectModel\\objectmodel.log", renameFile)
-        importLogs(host, db, "\\\\omsprod\\c$\\omsprint\\Logs\\OMSClient\\omsclient.log", renameFile)
-        importLogs(host, db, "\\\\omsprod\\C$\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\Savedata\\savedata.log", renameFile)
+        importLogs(host, db, "c$\\omsprint\\Logs\\ObjectModel\\objectmodel.log", renameFile)
+        importLogs(host, db, "c$\\omsprint\\Logs\\OMSClient\\omsclient.log", renameFile)
+        importLogs(host, db, "c$\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\savedata.log", renameFile)
 
         
         endtime = dt.datetime.now()
