@@ -238,8 +238,8 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
 
 if __name__ == "__main__":
     # Update the database before running the utility --What does this mean? wg on 2013-09-19
-    host = 'omsprod'
-    db = 'inland_20130926'
+    host = 'localhost'
+    db = 'wiregrass_2_2_0_84'
     logfile_schema = 'oms_logfiles'
     archive_schema = 'oms_archives'
     renameFile = True
