@@ -32,7 +32,7 @@ def counter_label(label):
 if __name__ == '__main__':
     #Define the GUI
     root = Tk()
-    root.title("Testing Values")
+    root.title("Total Row Count for Log Entries")
     label = Label(root, fg="blue", width=20, height=1, padx=1, pady=1)
     label.pack()
     button = Button(root, text='Stop', width=25, command=root.destroy)
