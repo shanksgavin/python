@@ -160,12 +160,12 @@ def importLogfiles(host=None, db=None, schema=None, f=None, rename=True):
                     last_values['date_'] = date_
                     time_ = line[11:23]
                     last_values['time_'] = time_
-                    if line.find(": ",26) == -1:
+                    if line.find("]:",26) == -1:
                         category = 'unknown'
-                        message = line[27:]
+                        message = line[26:]
                     else:
-                        category = line[26:line.find(": ",26)]
-                        message = line[line.find(": ",27)+2:].replace('\n', '')
+                        category = line[26:line.find("]:",26)]
+                        message = line[line.find("]:",26)+2:].replace('\n', '')
                     try:
                         sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
@@ -200,16 +200,17 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
         exit()
         
     #import needed modules
-    import os, glob
+    #import os
+    import glob
     import datetime as dt
     
     #check if base name of file exists
-    logfileExists = os.path.isfile(logfile)
+    #logfileExists = os.path.isfile(logfile)
     
-    if logfileExists == False:
+    #if logfileExists == False:
         #print a statement that file path provided is not useful then exit
-        print("No files available for import. ")
-        return None
+        #print("No files available for import. ")
+        #return None
     
     #Adding wildcard to path for glob.iglob to find all files with matching basename    
     logfile += "*"
@@ -220,7 +221,7 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
         
     except:
         print("Failed to execute finding all files with logfile basename")
-        exit()
+        return None
         
     #begin processing files
     #print("Beginning Import")
@@ -239,7 +240,7 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
 if __name__ == "__main__":
     # Update the database before running the utility --What does this mean? wg on 2013-09-19
     host = 'localhost'
-    db = 'wiregrass_2_2_0_84'
+    db = 'oms_inland_power'
     logfile_schema = 'oms_logfiles'
     archive_schema = 'oms_archives'
     renameFile = True
@@ -252,9 +253,9 @@ if __name__ == "__main__":
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
-        importLogs(host, db, "c:\\omsprint\\Logs\\ObjectModel\\objectmodel.log", renameFile)
-        importLogs(host, db, "c:\\omsprint\\Logs\\OMSClient\\omsclient.log", renameFile)
-        importLogs(host, db, "c:\\Program Files (x86)\\Futura Systems\\Futura OMS\\Bin\\SaveData\\Logs\\savedata.log", renameFile)
+        importLogs(host, db, r"\\omsprod\C\omsprint\Logs\ObjectModel\objectmodel.log", renameFile)
+        importLogs(host, db, r"\\omsprod\C\omsprint\Logs\OMSClient\omsclient.log", renameFile)
+        importLogs(host, db, r"\\omsprod\C\omsprint\Logs\SaveData\savedata.log", renameFile)
 
         
         endtime = dt.datetime.now()
