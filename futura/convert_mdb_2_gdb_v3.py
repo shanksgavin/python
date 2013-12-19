@@ -25,7 +25,7 @@ def printMXDLayers(mapDoc=None):
             counter += 1
     del mxd
 
-def updateLabelClasses(mapDoc=None, logging=True):
+def updateLabelClasses(mapDoc=None, mapVersion=None, logging=True):
     import datetime
     # Obtain current date & time to append to MXD filename
     CURRENT_TIME = datetime.datetime.now()
@@ -143,7 +143,7 @@ def updateLabelClasses(mapDoc=None, logging=True):
     mxd.description = "This map was automatically created by a script to make it file geodatabase friendly."
     mxd.relativePaths = False
     newMXD = mapDoc[:-4] + "_" + current_time + ".mxd"
-    mxd.saveACopy(newMXD)
+    mxd.saveACopy(newMXD, mapVersion)
     if logging:
         log.write("Saved changes to " + newMXD + "\n")
     arcpy.AddMessage("Saved changes to " + newMXD)
@@ -255,7 +255,13 @@ if arcpy.GetParameter(1) is None:
     exit()
 else:
     logging = arcpy.GetParameter(1)
-
+# Define Map Document Version parameter from ArcTool
+if arcpy.GetParameterAsText(2) is None:
+    arcpy.AddError("Map Document Version was not set")
+    exit()
+else:
+    mapVersion = arcpy.GetParameterAsText(2)
+    
 # Run Script now that variables are defined
-updateLabelClasses(mapDocument, logging)
+updateLabelClasses(mapDocument, mapVersion, logging)
 arcpy.AddMessage("Script Completed.")
