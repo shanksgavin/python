@@ -161,10 +161,10 @@ def importLogfiles(host=None, db=None, schema=None, f=None, rename=True):
                     time_ = line[11:23]
                     last_values['time_'] = time_
                     if line.find("]:",26) == -1:
-                        category = 'unknown'
+                        category = 'info'
                         message = line[26:]
                     else:
-                        category = line[26:line.find("]:",26)]
+                        category = line[26:line.find("]:",26)+2]
                         message = line[line.find("]:",26)+2:].replace('\n', '')
                     try:
                         sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
@@ -172,7 +172,7 @@ def importLogfiles(host=None, db=None, schema=None, f=None, rename=True):
                         cursor.execute('COMMIT;')
                         #cursor.execute("""INSERT INTO omsclient (date_, time_, time_ms, category, message) VALUES (to_date('{0}', 'YYYY-MM-DD'), to_timestamp('{1}', 'HH24:MI:SS'), {2}, '{3}', {4});\n""".format(date_, time_, time_ms, category, psycopg2.extensions.QuotedString(message).getquoted()))
                     except:
-                        sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'issue', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                        sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'insert_issue', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
                         cursor.execute('COMMIT;')
                 else:
@@ -240,7 +240,7 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
 if __name__ == "__main__":
     # Update the database before running the utility --What does this mean? wg on 2013-09-19
     host = 'localhost'
-    db = 'oms_inland_power'
+    db = 'wiregrass_2_2_0_84'
     logfile_schema = 'oms_logfiles'
     archive_schema = 'oms_archives'
     renameFile = True
@@ -253,9 +253,9 @@ if __name__ == "__main__":
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
-        importLogs(host, db, r"\\omsprod\C\omsprint\Logs\ObjectModel\objectmodel.log", renameFile)
-        importLogs(host, db, r"\\omsprod\C\omsprint\Logs\OMSClient\omsclient.log", renameFile)
-        importLogs(host, db, r"\\omsprod\C\omsprint\Logs\SaveData\savedata.log", renameFile)
+        importLogs(host, db, r"C:\omsprint\Logs\ObjectModel\objectmodel.log", renameFile)
+        importLogs(host, db, r"C:\omsprint\Logs\OMSClient\omsclient.log", renameFile)
+        importLogs(host, db, r"C:\omsprint\Logs\SaveData\savedata.log", renameFile)
 
         
         endtime = dt.datetime.now()
