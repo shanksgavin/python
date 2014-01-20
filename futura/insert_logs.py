@@ -10,7 +10,7 @@ Modified: October 7, 2013
 
 import sys
 
-def createLoggingSchema(db=None, schema=None):
+def createLoggingSchema(db=None, schema=None, u=None, p=None):
     """
     Function to create the schema for importing log files
     """
@@ -36,7 +36,7 @@ def createLoggingSchema(db=None, schema=None):
             sys.exit()
             
         try:
-            conn_string = "host='localhost' dbname='"+db+"' user='postgres' password='usouth'"
+            conn_string = "host='" + host + "' dbname='" + db + "' user='" + u + "' password='" + p + "'"
             conn = psy.connect(conn_string)
             cursor = conn.cursor()
             curtime = dt.datetime.now()
@@ -47,7 +47,7 @@ def createLoggingSchema(db=None, schema=None):
             print("Failed to create connection to database.")
             sys.exit()
 
-def backupOMSLogs(host=None, db=None, schema=None, archive=None):
+def backupOMSLogs(host=None, db=None, u=None, p=None, schema=None, archive=None):
     """
     Function to backup the schema for log files
     
@@ -83,7 +83,7 @@ def backupOMSLogs(host=None, db=None, schema=None, archive=None):
             return -3
             
     try:
-        conn_string = "host='" + host + "' dbname='" + db + "' user='postgres' password='usouth'"
+        conn_string = "host='" + host + "' dbname='" + db + "' user='" + u + "' password='" + p + "'"
         conn = psy.connect(conn_string)
         cursor = conn.cursor()
         curtime = dt.datetime.now()
@@ -111,7 +111,7 @@ def backupOMSLogs(host=None, db=None, schema=None, archive=None):
         return -1
     
 
-def importLogfiles(host=None, db=None, schema=None, f=None, rename=True):
+def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rename=True):
     """ 
     Parse supplied logfile (f) and insert into provided database (db)
     @var db: the database to insert the logfile contents
@@ -141,7 +141,7 @@ def importLogfiles(host=None, db=None, schema=None, f=None, rename=True):
         return errors
     else:
         import re
-        conn_string = "host='" + host + "' dbname='" + db + "' user='postgres' password='usouth'"
+        conn_string = "host='" + host + "' dbname='" + db + "' user='" + u + "' password='" + p + "'"
         conn = psy.connect(conn_string)
         cursor = conn.cursor()
         
@@ -241,6 +241,8 @@ if __name__ == "__main__":
     # Update the database before running the utility --What does this mean? wg on 2013-09-19
     host = 'localhost'
     db = 'wiregrass_2_2_0_84'
+    u = 'postgres'
+    p = 'usouth'
     logfile_schema = 'oms_logfiles'
     archive_schema = 'oms_archives'
     renameFile = True
