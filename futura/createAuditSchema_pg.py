@@ -9,7 +9,7 @@ Modified: Oct 11, 2013
 
 '''
 
-def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]):
+def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, mainSchema='public', table_list=[]):
     # Check table_list for data; Data validation IS NOT performed at this time.
     if len(table_list) == 0:
         print("Table_List is empty. Must provide at least one table to describe")
@@ -68,7 +68,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
     sql_omsTables = """SELECT c.relname 
         FROM pg_catalog.pg_class c 
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace 
-        WHERE n.nspname='public' 
+        WHERE n.nspname='""" + mainSchema + """' 
         AND c.relkind IN ('r','') 
         AND n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema') 
         ORDER BY c.relname ASC"""
@@ -85,7 +85,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
             #DROP Trigger IF EXISTS
             createTrigger = True
             try:
-                sql_audit_trg_exists = "SELECT count(trigger_name) AS trigger_name_count FROM information_schema.triggers WHERE trigger_schema = 'public' and trigger_name = 'audit_" + tbl[0] + "_trg' GROUP BY trigger_name"
+                sql_audit_trg_exists = "SELECT count(trigger_name) AS trigger_name_count FROM information_schema.triggers WHERE trigger_schema = '"+mainSchema+"' and trigger_name = 'audit_" + tbl[0] + "_trg' GROUP BY trigger_name"
                 # Execute sql to obtain the attribute definitions of each table
                 cursorExe.execute(sql_audit_trg_exists)
                  
@@ -95,7 +95,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
                     # Backup existing audit table
                     print("    FOUND: audit_" + tbl[0] + "_trg")
                     try:
-                        sql_drop_trigger = "DROP TRIGGER audit_" + tbl[0] + "_trg ON " + tbl[0]
+                        sql_drop_trigger = "DROP TRIGGER " + mainSchema + ".audit_" + tbl[0] + "_trg ON " + mainSchema + "." + tbl[0]
                         cursorExe.execute(sql_drop_trigger)
                         cursorExe.execute("COMMIT")
                          
@@ -116,14 +116,14 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
             #print("DROP Function IF EXISTS")
             createFunction = True
             try:
-                sql_audit_function_exists = "SELECT 1 FROM information_schema.routines WHERE specific_schema = 'public' and routine_type = 'FUNCTION' and routine_name = 'audit_" + tbl[0] + "'"
+                sql_audit_function_exists = "SELECT 1 FROM information_schema.routines WHERE specific_schema = '" + mainSchema + "' and routine_type = 'FUNCTION' and routine_name = 'audit_" + tbl[0] + "'"
                 cursorFunc.execute(sql_audit_function_exists)
                 
                 functions = [foundFUNC for foundFUNC in cursorFunc]
                 if len(functions) == 1 and functions[0][0] == 1:
                     print("    FOUND: audit_" + tbl[0] + "() function")
                     try:
-                        sql_drop_function = "DROP FUNCTION audit_" + tbl[0] + "() CASCADE"
+                        sql_drop_function = "DROP FUNCTION " + mainSchema + ".audit_" + tbl[0] + "() CASCADE"
                         cursorDropFunc.execute(sql_drop_function)
                         cursorDropFunc.execute("COMMIT")
                         
@@ -155,7 +155,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
                     print("    FOUND: audit_" + tbl[0])
                     dropAuditTable = False
                     try:
-                        sql_backup_table = "SELECT * INTO oms_archives.archive_" + curtime + "_audit_" + tbl[0] + " FROM public.audit_" + tbl[0]
+                        sql_backup_table = "SELECT * INTO oms_archives.archive_" + curtime + "_audit_" + tbl[0] + " FROM " + mainSchema + ".audit_" + tbl[0]
                         cursorBackupTable.execute(sql_backup_table)
                         cursorBackupTable.execute("COMMIT")
                         dropAuditTable = True
@@ -167,7 +167,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
                     if dropAuditTable:
                         try:
                             #print("Attempting to drop table audit_" + tbl[0])
-                            cursorDropTable.execute("DROP TABLE audit_" + tbl[0])
+                            cursorDropTable.execute("DROP TABLE " + mainSchema + ".audit_" + tbl[0])
                             cursorDropTable.execute("COMMIT")
                             print("    audit_" + tbl[0] + ": dropped")
                             
@@ -191,7 +191,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
                 print("    Create New Audit Table (from one row of existing OMS table)")
                 try:
                     #print("~~~~Trying to Create table as ...")
-                    sqlCreateTable = "SELECT * INTO audit_" + tbl[0] + " FROM " + tbl[0] + " LIMIT 0"
+                    sqlCreateTable = "SELECT * INTO " + auditSchema + ".audit_" + tbl[0] + " FROM " + mainSchema + "." + tbl[0] + " LIMIT 0"
                     print("    " + sqlCreateTable)
                     try:
                         #print("    TRYING...")
@@ -220,16 +220,16 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
                     try:
                         # Add Audit Fields to table
                         #print("    Adding audit fields to table")
-                        alterTable1 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_id serial NOT NULL"
+                        alterTable1 = "ALTER TABLE " + auditSchema + ".audit_" + tbl[0] + " ADD COLUMN audit_id serial NOT NULL"
                         cursorExe.execute(alterTable1)
                         cursorExe.execute("COMMIT")
-                        alterTable2 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_sql_action character(1) NOT NULL"
+                        alterTable2 = "ALTER TABLE " + auditSchema + ".audit_" + tbl[0] + " ADD COLUMN audit_sql_action character(1) NOT NULL"
                         cursorExe.execute(alterTable2)
                         cursorExe.execute("COMMIT")
-                        alterTable3 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_stamp timestamp without time zone NOT NULL"
+                        alterTable3 = "ALTER TABLE " + auditSchema + ".audit_" + tbl[0] + " ADD COLUMN audit_stamp timestamp without time zone NOT NULL"
                         cursorExe.execute(alterTable3)
                         cursorExe.execute("COMMIT")
-                        alterTable4 = "ALTER TABLE audit_" + tbl[0] + " ADD COLUMN audit_user_id text NOT NULL"
+                        alterTable4 = "ALTER TABLE " + auditSchema + ".audit_" + tbl[0] + " ADD COLUMN audit_user_id text NOT NULL"
                         cursorExe.execute(alterTable4)
                         cursorExe.execute("COMMIT")
                         print("    NEW: Audit fields added!")
@@ -245,16 +245,16 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
             if createFunction:
                 try:
                     sql_create_function = """ -- Create function for getting information to be inserted into audit table
-                                        CREATE OR REPLACE FUNCTION audit_""" + tbl[0] + """() RETURNS TRIGGER AS $usr_audit$
+                                        CREATE OR REPLACE FUNCTION """ + mainSchema + """.audit_""" + tbl[0] + """() RETURNS TRIGGER AS $usr_audit$
                                             BEGIN
                                                 IF (TG_OP = 'DELETE') THEN
-                                                    INSERT INTO audit_""" + tbl[0] + """ VALUES (OLD.*, DEFAULT, 'D', now(), user);
+                                                    INSERT INTO """ + auditSchema + """.audit_""" + tbl[0] + """ VALUES (OLD.*, DEFAULT, 'D', now(), user);
                                                     RETURN OLD;
                                                 ELSIF (TG_OP = 'UPDATE') THEN
-                                                    INSERT INTO audit_""" + tbl[0] + """ VALUES (NEW.*, DEFAULT, 'U', now(), user);
+                                                    INSERT INTO """ + auditSchema + """.audit_""" + tbl[0] + """ VALUES (NEW.*, DEFAULT, 'U', now(), user);
                                                     RETURN NEW;
                                                 ELSIF (TG_OP = 'INSERT') THEN
-                                                    INSERT INTO audit_""" + tbl[0] + """ VALUES (NEW.*, DEFAULT, 'I', now(), user);
+                                                    INSERT INTO """ + auditSchema + """.audit_""" + tbl[0] + """ VALUES (NEW.*, DEFAULT, 'I', now(), user);
                                                     RETURN NEW;
                                                 END IF;
                                                 RETURN NULL; -- result is ignored since this is an AFTER trigger
@@ -273,7 +273,7 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
             if createTrigger:
                 try:
                     sql_create_trigger = """ -- Create Trigger to execute the function for inserting audit information
-                                            CREATE TRIGGER audit_""" + tbl[0] + """_trg AFTER INSERT OR UPDATE OR DELETE ON """ + tbl[0] + """
+                                            CREATE TRIGGER """ + mainSchema + """.audit_""" + tbl[0] + """_trg AFTER INSERT OR UPDATE OR DELETE ON """ + mainSchema + "." + tbl[0] + """
                                             FOR EACH ROW EXECUTE PROCEDURE audit_""" + tbl[0] + """();"""
                     cursorCreateTrigger.execute(sql_create_trigger)
                     cursorCreateTrigger.execute("COMMIT")
@@ -297,7 +297,9 @@ def createAuditSchema(host=None, db='omsprod', user=None, pw=None, table_list=[]
     
             
 if __name__ == "__main__":
-    createAuditSchema('localhost', 'wiregrass_2_2_0_84', 'postgres', 'usouth', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'omstocislog', 'calls_events', 'pingdetails', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'scada_device_map', 'tag_status', 'export_status', 'new_export_status'])
-    #createAuditSchema('omsprod', 'inland_20130926', 'postgres', 'gis123!@#', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'omstocislog', 'calls_events', 'pingdetails', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'scada_device_map', 'tag_status', 'export_status', 'new_export_status'])
+    createAuditSchema('10.40.0.143', 'omsimpl', 'postgres', 'usouth', 'oms_audits', 'public', ['calls', 'cases'])
+    #createAuditSchema('localhost', 'wiregrass_2_2_0_84', 'postgres', 'usouth', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'omstocislog', 'calls_events', 'pingdetails', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'scada_device_map', 'tag_status', 'export_status', 'new_export_status','sl_workers', 'avl_vehicles', 'avl_vendors'])
+    #createAuditSchema('localhost', 'inland_power_20140204', 'postgres', 'usouth', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'calls_events', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'tag_status', 'export_status', 'new_export_status'])
+    #createAuditSchema('omsprod', 'inland_20130926', 'postgres', 'gis123!@#', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'omstocislog', 'calls_events', 'pingdetails', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'scada_device_map', 'tag_status', 'export_status', 'new_export_status', 'avl_vehicles', 'avl_vendors'])
     #createAuditSchema('wiregrass_2_2_0_74', ['cases', 'calls'])
     print("Script Completed")
