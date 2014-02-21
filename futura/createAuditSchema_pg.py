@@ -1,7 +1,7 @@
 '''
 Title: Create OMS Audit Schema for In-Depth Troubleshooting
 Created: Jun 27, 2013
-Modified: Oct 11, 2013
+Modified: Feb 21, 2014
 
 @author: williamg
 
@@ -37,7 +37,6 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
         connBackupTable = psy.connect(conn_string)
         connDropTable = psy.connect(conn_string)
         connCreateTable = psy.connect(conn_string)
-        connTruncateTable = psy.connect(conn_string)
         connCreateFunction = psy.connect(conn_string)
         connCreateTrigger = psy.connect(conn_string)
         
@@ -51,7 +50,6 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
         cursorBackupTable = connBackupTable.cursor()
         cursorDropTable = connDropTable.cursor()
         cursorCreateTable = connCreateTable.cursor()
-        cursorTruncateTable = connTruncateTable.cursor()
         cursorCreateFunction = connCreateFunction.cursor()
         cursorCreateTrigger = connCreateTrigger.cursor()
         
@@ -62,8 +60,6 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
         print("Failed to create connection(s) to database.")
         exit()
             
-    #print(str(curtime))
-    
     # Get list of tables for OMS schema
     sql_omsTables = """SELECT c.relname 
         FROM pg_catalog.pg_class c 
@@ -90,7 +86,7 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
                 cursorExe.execute(sql_audit_trg_exists)
                  
                 triggers = [foundTRG for foundTRG in cursorExe]
-                #print(triggers)
+                
                 if len(triggers) == 1 and triggers[0][0] == 3:
                     # Backup existing audit table
                     print("    FOUND: audit_" + tbl[0] + "_trg")
@@ -106,14 +102,12 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
                 else:
                     print("    WARNING: audit_" + tbl[0] + "_trg NOT FOUND.")
                     
-                    #break
             except:
                 print("    SQL EXCEPTION: audit_" + tbl[0] + "_trg.")
 
             #===================================================================
             # DROP Function IF EXISTS
             #===================================================================
-            #print("DROP Function IF EXISTS")
             createFunction = True
             try:
                 sql_audit_function_exists = "SELECT 1 FROM information_schema.routines WHERE specific_schema = '" + mainSchema + "' and routine_type = 'FUNCTION' and routine_name = 'audit_" + tbl[0] + "'"
@@ -145,11 +139,8 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
             try:
                 sql_audit_tbl_exists = "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' and table_name = 'audit_" + tbl[0] + "'"
                 # Execute sql to obtain the attribute definitions of each table
-                #print(sql_audit_tbl_exists)
                 cursorAuditTable.execute(sql_audit_tbl_exists)
-                #print(cursorAuditTable)
                 auditTables = [auditTable for auditTable in cursorAuditTable]
-                    #print("auditTable: " + str(auditTable))
                 if len(auditTables) == 1 and auditTables[0][0] == 1:
                     # Backup existing audit table
                     print("    FOUND: audit_" + tbl[0])
@@ -166,7 +157,6 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
                     
                     if dropAuditTable:
                         try:
-                            #print("Attempting to drop table audit_" + tbl[0])
                             cursorDropTable.execute("DROP TABLE " + mainSchema + ".audit_" + tbl[0])
                             cursorDropTable.execute("COMMIT")
                             print("    audit_" + tbl[0] + ": dropped")
@@ -190,36 +180,17 @@ def createAuditSchema(host=None, db=None, user=None, pw=None, auditSchema=None, 
             if createAuditTable:
                 print("    Create New Audit Table (from one row of existing OMS table)")
                 try:
-                    #print("~~~~Trying to Create table as ...")
                     sqlCreateTable = "SELECT * INTO " + auditSchema + ".audit_" + tbl[0] + " FROM " + mainSchema + "." + tbl[0] + " LIMIT 0"
                     print("    " + sqlCreateTable)
                     try:
-                        #print("    TRYING...")
                         cursorCreateTable.execute(sqlCreateTable)
                         cursorCreateTable.execute("COMMIT")
-                        #print("    @@CREATE Table completed.")
                         print("    NEW: Created new audit table: audit_" + tbl[0])
                     except:
                         print("    Audit_" + tbl[0] + " creation failed")
-                    #cursorCreateTable.execute("COMMIT")
                     
-                    #===========================================================
-                    # try:
-                    #     # Clear out (truncate) audit table before using
-                    #     print("Truncating...")
-                    #     sqlTruncateTable = "TRUNCATE TABLE audit_" + tbl[0]
-                    #     cursorTruncateTable.execute(sqlTruncateTable)
-                    #     cursorTruncateTable.execute("COMMIT")
-                    #     cursorTruncateTable.close()
-                    #     print("    TRUNCATED audit_" + tbl[0])
-                    #     
-                    # except:
-                    #     print("    ERROR: Failed to truncate table " + tbl[0])
-                    #===========================================================
-                
                     try:
                         # Add Audit Fields to table
-                        #print("    Adding audit fields to table")
                         alterTable1 = "ALTER TABLE " + auditSchema + ".audit_" + tbl[0] + " ADD COLUMN audit_id serial NOT NULL"
                         cursorExe.execute(alterTable1)
                         cursorExe.execute("COMMIT")
