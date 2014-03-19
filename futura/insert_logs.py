@@ -154,18 +154,24 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
             if len(line.strip()) == 0 or line == '\n':
                 pass
             else:
-                matchObj = re.match(r'\d{4}-\d{2}-\d{2}', line[:10], re.U)
-                if matchObj:
+                if re.match(r'\d{4}-\d{2}-\d{2}', line[:10], re.U):
                     date_ = line[:10]
+                elif re.match(r'\d{2}-\d{2}-\d{4}', line[:10], re.U):
+                    date_ = "{0}-{1}".format(line[6:10], line[:5])
+                else:
+                    date_ = None
+                    
+                if date_ <> None:
+                    #date_ = line[:10]
                     last_values['date_'] = date_
                     time_ = line[11:23]
                     last_values['time_'] = time_
-                    if line.find("]:",26) == -1:
-                        category = 'info'
-                        message = line[26:]
+                    if line.find("[",24) == -1:
+                        category = 'No Category'
+                        message = line[24:]
                     else:
-                        category = line[26:line.find("]:",26)+2]
-                        message = line[line.find("]:",26)+2:].replace('\n', '')
+                        category = line[24:line.find("]",24)+1]
+                        message = line[line.find("]",24)+1:].replace('\n', '')
                     try:
                         sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
@@ -194,7 +200,7 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
             
         return "    Completed file " + f
 
-def importLogs(host=None, db=None, logfile=None, rename=True):
+def importLogs(host=None, db=None, u=None, p=None, logfile=None, rename=True):
     if logfile is None:
         print("No file was provided. Exiting...")
         exit()
@@ -229,7 +235,7 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
         for f in logfiles: 
             try:
                 objmodel_starttime = dt.datetime.now()
-                print(importLogfiles(host, db, 'oms_logfiles', f, rename))
+                print(importLogfiles(host, db, u, p, 'oms_logfiles', f, rename))
                 objectmodel_run_time = dt.datetime.now()
                 print("    Imported in " + str(objectmodel_run_time-objmodel_starttime))
             except:
@@ -238,9 +244,11 @@ def importLogs(host=None, db=None, logfile=None, rename=True):
         print("No new logs to be inserted!")
 
 if __name__ == "__main__":
-    # Update the database before running the utility --What does this mean? wg on 2013-09-19
+    #
+    # Update the parameters & log file path before running the utility
+    #
     host = 'localhost'
-    db = 'wiregrass_2_2_0_84'
+    db = 'coweta-fayette' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
     u = 'postgres'
     p = 'usouth'
     logfile_schema = 'oms_logfiles'
@@ -251,13 +259,16 @@ if __name__ == "__main__":
     import datetime as dt
     starttime = dt.datetime.now()
     print("Started Existing Log Backup Process: " + str(starttime))
-    backup = backupOMSLogs(host, db, logfile_schema, archive_schema)
+    backup = backupOMSLogs(host, db, u, p, logfile_schema, archive_schema)
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
-        importLogs(host, db, r"C:\omsprint\Logs\ObjectModel\objectmodel.log", renameFile)
-        importLogs(host, db, r"C:\omsprint\Logs\OMSClient\omsclient.log", renameFile)
-        importLogs(host, db, r"C:\omsprint\Logs\SaveData\savedata.log", renameFile)
+        importLogs(host, db, u, p, r"C:\map_files\Logs\ObjectModel\objectmodel.log", renameFile)
+        importLogs(host, db, u, p, r"C:\map_files\Logs\OMSClient\omsclient.log", renameFile)
+        importLogs(host, db, u, p, r"C:\map_files\Logs\SaveData\savedata.log", renameFile)
+        #importLogs(host, db, u, p, r"C:\oms_logs\omsprod\ObjectModel\objectmodel.log", renameFile)
+        #importLogs(host, db, u, p, r"C:\oms_logs\omsprod\OMSClient\omsclient.log", renameFile)
+        #importLogs(host, db, u, p, r"C:\oms_logs\omsprod\SaveData\savedata.log", renameFile)
 
         
         endtime = dt.datetime.now()
