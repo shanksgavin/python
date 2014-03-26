@@ -166,7 +166,7 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
                     last_values['date_'] = date_
                     time_ = line[11:23]
                     last_values['time_'] = time_
-                    if line.find("[",24) == -1:
+                    if line.find("[",24,6) == -1:
                         category = 'No Category'
                         message = line[24:]
                     else:
@@ -185,6 +185,7 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
                     sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'additional_lines', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                     cursor.execute(sqlInsert)
                     conn.commit()
+            #print(str(lineNumber))
             
         fo.close()
         del cursor
@@ -235,11 +236,13 @@ def importLogs(host=None, db=None, u=None, p=None, logfile=None, rename=True):
         for f in logfiles: 
             try:
                 objmodel_starttime = dt.datetime.now()
-                print(importLogfiles(host, db, u, p, 'oms_logfiles', f, rename))
+                result = importLogfiles(host, db, u, p, 'oms_logfiles', f, rename) 
+                print(result)
                 objectmodel_run_time = dt.datetime.now()
                 print("    Imported in " + str(objectmodel_run_time-objmodel_starttime))
-            except:
+            except Exception as e:
                 print("    Couldn't import " + f)
+                print(e)
     else:
         print("No new logs to be inserted!")
 
@@ -248,7 +251,7 @@ if __name__ == "__main__":
     # Update the parameters & log file path before running the utility
     #
     host = 'localhost'
-    db = 'coweta-fayette' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
+    db = 'omsimpl' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
     u = 'postgres'
     p = 'usouth'
     logfile_schema = 'oms_logfiles'
@@ -266,9 +269,9 @@ if __name__ == "__main__":
         importLogs(host, db, u, p, r"C:\map_files\Logs\ObjectModel\objectmodel.log", renameFile)
         importLogs(host, db, u, p, r"C:\map_files\Logs\OMSClient\omsclient.log", renameFile)
         importLogs(host, db, u, p, r"C:\map_files\Logs\SaveData\savedata.log", renameFile)
-        #importLogs(host, db, u, p, r"C:\oms_logs\omsprod\ObjectModel\objectmodel.log", renameFile)
-        #importLogs(host, db, u, p, r"C:\oms_logs\omsprod\OMSClient\omsclient.log", renameFile)
-        #importLogs(host, db, u, p, r"C:\oms_logs\omsprod\SaveData\savedata.log", renameFile)
+        #importLogs(host, db, u, p, r"C:\oms_logs\omsimpl\ObjectModel\objectmodel.log", renameFile)
+        #importLogs(host, db, u, p, r"C:\oms_logs\omsimpl\OMSClient\omsclient.log", renameFile)
+        #importLogs(host, db, u, p, r"C:\oms_logs\omsimpl\SaveData\savedata.log", renameFile)
 
         
         endtime = dt.datetime.now()
