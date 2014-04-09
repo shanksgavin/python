@@ -286,7 +286,7 @@ def moveAuditData(host=None, db=None, user=None, pw=None, srcSchema=None, destSc
         exit()
     try:
         # Connection String
-        conn_string = "host='" + host + "' dbname='" + db + "' user='" + user + "' password='" + pw + "'"
+        conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}'".format(host, db, user, pw)
         # Create independent connections
         conn = psy.connect(conn_string)
         # Create independent cursors
@@ -311,17 +311,18 @@ def moveAuditData(host=None, db=None, user=None, pw=None, srcSchema=None, destSc
             print(e)
             #print("Move existing audit data from public to oms_audit schema failed")
     print(curtime)
+    del cursorTbl
 
 if __name__ == "__main__":
     host = 'localhost'
-    db = 'coweta-fayette'
+    db = 'cwf'
     user = 'postgres'
     pw = 'usouth'
     srcSchema = 'public'
     destSchema = 'oms_audits'
     
     #moveAuditData(host, db, user, pw, srcSchema, destSchema)
-    createAuditSchema('10.40.0.170', 'coweta-fayette', 'postgres', 'usouth', 'oms_audits', 'public')
+    createAuditSchema(host, db, user, pw, destSchema, srcSchema)
     #createAuditSchema('10.40.0.170', 'inland_20140204', 'postgres', 'usouth', 'oms_audits', 'public', ['amps','amraccountinfo','avl_vehicle_positions','avl_vehicle_positions_simulator','avl_vehicles','avl_vehicles_simulator','avl_vendors','call_audio','call_info_type','call_trouble_codes','callbundles','calls','calls_events','calls_for_accounting','calls_priority','callsfromcis','callstocis','cap_ctrl','cap_rack','capacitor','case_base_crew','case_bat','case_causes','case_failures','case_other','case_truck_member_history','case_weather','cases','cases_events','casescustomers','changed','cistoomslog','class','cnt','commonsettings','conductor_primary','conductor_secondary','connect','connection','connects','constcode','constructiontype','crew_actions_history','crew_trucks','crew_types','crews','customers','daily_saidi','datelist','deleted','device','deviceco','downline','downline_devices','elements','employee','export_status','feeder','fuse','glps_dev','glps_err','historydata','imqueue','inserted','interface_errors','interface_errors_mobile','interface_errors_sql','ivr_predefined_messages','ivrcallerrors','ivrcalls','kva','light','ltcnt','member_types','members','meterbase','new_capacitor','new_counties','new_customers','new_device','new_export_status','new_light','new_meterbase','new_pole','new_regions','new_regulator','new_sections','new_substation','new_switch','new_transformer','nodes','note_dept','note_types','omsnotes','omstocislog','outagecalls','outagecases','outagecustomers','outagesbycounty','outagesbyregion','outagesyearly','outlist','phase','phonenums','pingdetails','pole','pole_attachment_inventory_projects','pole_attachors','pole_dummy','pole_inspections','pole_inspections_definitions','pole_inventory_projects_misc','pole_types','poleclass','poleht','poleinsp','poleowner','preferences','priocust','projects','ptfile','rec_exist','recl','regulator','repfile','roaddata','roadstrt','saidi_customers_history','scada_device_map','sect','sections','sectlist','security_actions','security_modules','security_roleactions','security_roles','security_userroles','security_users','settings','setup','slworkers','smalpox','streets','substation','substation_breakers','switch','swithist','switlog','switproc','swittemp','sys_chek','tag_customizations','tag_equipment_type','tag_purpose','tag_status','tag_type','tags','tags_history','td_cols','temp','tempckts','test_ami_requests','test_scada_requests','tfmr','transformer','truck_members','truck_types','trucks','upncallerrors','upncalls','users','winrslt','xtraservice','yearly_data'])
     #createAuditSchema('localhost', 'wiregrass_2_2_0_84', 'postgres', 'usouth', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'omstocislog', 'calls_events', 'pingdetails', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'scada_device_map', 'tag_status', 'export_status', 'new_export_status','sl_workers', 'avl_vehicles', 'avl_vendors'])
     #createAuditSchema('localhost', 'inland_power_20140204', 'postgres', 'usouth', ['casescustomers', 'sections', 'pole', 'customers', 'meterbase', 'calls', 'calls_events', 'cases_events', 'cases', 'device', 'crew_actions_history', 'trucks', 'interface_errors', 'interface_errors_mobile', 'case_truck_member_history', 'omsnotes', 'settings', 'tags_history', 'cistoomslog', 'preferences', 'case_causes', 'interface_errors_sql', 'ivrcalls', 'truck_members', 'tags', 'callbundles', 'commonsettings', 'setup', 'imqueue', 'crews', 'ivrcallerrors', 'tag_status', 'export_status', 'new_export_status'])
