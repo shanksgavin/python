@@ -251,7 +251,7 @@ if __name__ == "__main__":
     # Update the parameters & log file path before running the utility
     #
     host = 'localhost'
-    db = 'omsimpl' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
+    db = 'coweta-fayette' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
     u = 'postgres'
     p = 'usouth'
     logfile_schema = 'oms_logfiles'
