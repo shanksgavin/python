@@ -315,7 +315,7 @@ def moveAuditData(host=None, db=None, user=None, pw=None, srcSchema=None, destSc
 
 if __name__ == "__main__":
     host = 'localhost'
-    db = 'cwf'
+    db = 'oms_meade'
     user = 'postgres'
     pw = 'usouth'
     srcSchema = 'public'
