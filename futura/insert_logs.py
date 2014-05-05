@@ -95,8 +95,9 @@ def backupOMSLogs(host=None, db=None, u=None, p=None, schema=None, archive=None)
             cursor.execute(sql_omslogs)
             conn.commit()
             #truncate = True
-        except:
+        except Exception as e:
             print("Failed to backup oms_logfiles.omslogs")
+            print(e)
             return -2
             
         #=======================================================================
@@ -164,28 +165,35 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
                 if date_ <> None:
                     #date_ = line[:10]
                     last_values['date_'] = date_
-                    time_ = line[11:23]
+                    endTime = line.find(' ',11)
+                    time_ = line[11:endTime]
                     last_values['time_'] = time_
-                    if line.find("[",24,6) == -1:
+                    
+                    #Assumes Log4j is configured to use [] around log level (category)
+                    beginCategory = line.find("[",0,30)
+                    if beginCategory == -1:
                         category = 'No Category'
                         message = line[24:]
                     else:
-                        category = line[24:line.find("]",24)+1]
-                        message = line[line.find("]",24)+1:].replace('\n', '')
+                        endCategory = line.find("]",beginCategory)+1
+                        category = line[beginCategory:endCategory]
+                        message = line[endCategory:].replace('\n', '')
                     try:
                         sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
-                        conn.commit()
+                        #conn.commit()
                         #cursor.execute("""INSERT INTO omsclient (date_, time_, time_ms, category, message) VALUES (to_date('{0}', 'YYYY-MM-DD'), to_timestamp('{1}', 'HH24:MI:SS'), {2}, '{3}', {4});\n""".format(date_, time_, time_ms, category, psycopg2.extensions.QuotedString(message).getquoted()))
                     except:
                         sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'insert_issue', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
-                        conn.commit()
+                        #conn.commit()
                 else:
                     sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'additional_lines', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
                     cursor.execute(sqlInsert)
-                    conn.commit()
-            #print(str(lineNumber))
+                    #conn.commit()
+            if lineNumber % 2500 == 0:
+                conn.commit()
+                #print(str(lineNumber) + " successfully committed")
             
         fo.close()
         del cursor
@@ -251,7 +259,7 @@ if __name__ == "__main__":
     # Update the parameters & log file path before running the utility
     #
     host = 'localhost'
-    db = 'coweta-fayette' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
+    db = 'wiregrass_121' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
     u = 'postgres'
     p = 'usouth'
     logfile_schema = 'oms_logfiles'
@@ -266,13 +274,16 @@ if __name__ == "__main__":
     #print(backup)
     if backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
+        
         importLogs(host, db, u, p, r"C:\map_files\Logs\ObjectModel\objectmodel.log", renameFile)
         importLogs(host, db, u, p, r"C:\map_files\Logs\OMSClient\omsclient.log", renameFile)
         importLogs(host, db, u, p, r"C:\map_files\Logs\SaveData\savedata.log", renameFile)
-        #importLogs(host, db, u, p, r"C:\oms_logs\omsimpl\ObjectModel\objectmodel.log", renameFile)
-        #importLogs(host, db, u, p, r"C:\oms_logs\omsimpl\OMSClient\omsclient.log", renameFile)
-        #importLogs(host, db, u, p, r"C:\oms_logs\omsimpl\SaveData\savedata.log", renameFile)
-
+        
+        """
+        importLogs(host, db, u, p, r"C:\oms_logs\omsprod\ObjectModel\objectmodel.log", renameFile)
+        importLogs(host, db, u, p, r"C:\oms_logs\omsprod\OMSClient\omsclient.log", renameFile)
+        importLogs(host, db, u, p, r"C:\oms_logs\omsprod\SaveData\savedata.log", renameFile)
+        """
         
         endtime = dt.datetime.now()
     else:
