@@ -8,12 +8,7 @@ Modified: n/a
 @version: 0.1
 '''
 
-def backupAuditSchema(db='omsprod'):
-    """ 
-    Back up Audit Tables into the Archive DB on FTA_WilliamG
-    
-    @var db: The name of the source database to be archived
-    """ 
+def backupAuditData(host=None, db=None, user=None, pw=None, srcSchema=None, destSchema=None):
     try:
         import psycopg2 as psy
         #import psycopg2.extras as psyExtras
@@ -21,80 +16,61 @@ def backupAuditSchema(db='omsprod'):
     except:
         print("Failed to import python-postgresql drivers.")
         exit()
-        
     try:
         # Connection String
-        conn_string = "host='localhost' dbname='" + db + "' user='postgres' password='usouth'"
-        
+        conn_string = "host='{0}' dbname='{1}' user='{2}' password='{3}'".format(host, db, user, pw)
         # Create independent connections
-        connTbl = psy.connect(conn_string)
-        connBackupTable = psy.connect(conn_string)
-        connTruncateTable = psy.connect(conn_string)
-        
+        conn = psy.connect(conn_string)
         # Create independent cursors
-        cursorTbl = connTbl.cursor()
-        cursorBackupTable = connBackupTable.cursor()
-        cursorTruncateTable = connTruncateTable.cursor()
-        
+        cursorTbl = conn.cursor()
         # Create a timestamp
-        curtime = str(dt.datetime.now()).replace(' ','_').replace('-','').replace(':','').replace('.','')
-        
+        curtime = str(dt.datetime.now()).replace(' ','_').replace('-','').replace(':','').replace('.','')[:-6]
     except:
         print("Failed to create connection(s) to database.")
         exit()
-            
-    #print(str(curtime))
+    print(dt.datetime.now())
     
+    # Select all audit tables with data
     # Get list of tables for OMS schema
-    sql_omsTables = """SELECT c.relname 
-        FROM pg_catalog.pg_class c 
-        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace 
-        WHERE n.nspname='public' 
-        AND c.relkind IN ('r','') 
-        AND n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema') 
-        AND c.relname ilike 'audit_%' 
-        ORDER BY c.relname ASC"""
+    sql_omsTables = """SELECT relname
+      FROM pg_stat_user_tables 
+      WHERE schemaname = '""" + srcSchema + """'
+      GROUP BY relname, n_live_tup
+      HAVING n_live_tup > 0
+      ORDER BY n_live_tup DESC;"""
     
     # Execute the cursor to obtain the OMS Schema list
     cursorTbl.execute(sql_omsTables)
+    availableTables = [tbl[0] for tbl in cursorTbl]
     
-    # Loop thru each table and print the table definition in CSV format
-    for tbl in cursorTbl:
-        print("Backup {0}".format(tbl[0]))
+    counter = 0
+    for table in availableTables:
+        counter += 1
+        #['callbundles','calls','calls_events','case_causes','case_truck_member_history','cases','cases_events','casescustomers','cistoomslog','commonsettings','crew_actions_history','crews','customers','device','export_status','imqueue','interface_errors','interface_errors_mobile','interface_errors_sql','ivrcallerrors','ivrcalls','meterbase','new_export_status','omsnotes','pole','preferences','sections','settings','setup','tag_status','tags','tags_history','truck_members','trucks']:
         
-        #===================================================================
-        # Backup Audit Table
-        #===================================================================
-        truncate = True
+        #sql_backup_table = "SELECT * INTO oms_archives.archive_" + curtime + "_audit_" + tbl[0] + " FROM " + auditSchema + ".audit_" + tbl[0]
+        destinationTable = "{0}.archive_{1}_{2}".format(destSchema, curtime, table)
+        sql = "SELECT * INTO {0} FROM {1}.{2}".format(destinationTable, srcSchema, table)
         try:
-            sql_backup_table = "SELECT * INTO oms_archives.archive_" + curtime + "_" + tbl[0] + " FROM public." + tbl[0]
-            cursorBackupTable.execute(sql_backup_table)
-            cursorBackupTable.execute("COMMIT")
-            print("    public." + tbl[0] + " BACKED UP to oms_archives.archives_" + curtime + "_" + tbl[0])
-            
-        except:
-            print("    ERROR: Unable to backup existing audit table: " + tbl[0]) 
-            truncate = False
-            
-        #===================================================================
-        # Truncate Audit Table
-        #===================================================================
-        if truncate:
-            try:
-                sql_truncate_table = "TRUNCATE public." + tbl[0]
-                cursorTruncateTable.execute(sql_truncate_table)
-                cursorTruncateTable.execute("COMMIT")
-                print("    " + tbl[0] + " TRUNCATED.")
-            except:
-                print("    ERROR: Failed to Truncate table: " + tbl[0])
-                
-    # Cursor Cleanup
-    cursorTbl.close()
-    cursorBackupTable.close()
-    cursorTruncateTable.close()
-    
-    
+            cursorTbl.execute(sql)
+            conn.commit()
+            cursorTbl.execute("TRUNCATE " + srcSchema + "." + table)
+            print("{0:>3}: Audit Data Archived for {1}".format(str(counter), table))
+        except Exception as e:
+            print(table + " errors:")
+            conn.rollback()
+            print(e)
+            #print("Move existing audit data from public to oms_audit schema failed")
+    print(dt.datetime.now())
+    del cursorTbl
             
 if __name__ == "__main__":
-    backupAuditSchema('wiregrass_2_2_0_84')
+    host = 'localhost'
+    db = 'wiregrass_121'
+    user = 'postgres'
+    pw = 'usouth'
+    srcSchema = 'oms_audits'
+    destSchema = 'oms_archives'
+    
+    backupAuditData(host, db, user, pw, srcSchema, destSchema)
     print("Script Completed")
