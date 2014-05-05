@@ -70,12 +70,13 @@ def updateTriggers(host=None, db=None, u=None, p=None, schema=None, action=None)
                 conn.commit()
             except Exception as e:
                 print(e)
+                conn.rollback()
         
         del cursor
             
 if __name__ == "__main__":
     host = 'localhost'
-    db = 'coweta-fayette'
+    db = 'inland_20140204'
     user = 'postgres'
     pw = 'usouth'
     schema = 'public'
