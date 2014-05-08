@@ -119,8 +119,8 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
     @var f: the file name including the full path to the log file.
     """
     
-    import os
-    
+    import os, shutil
+        
     try:
         import psycopg2 as psy
         import datetime as dt
@@ -150,6 +150,7 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
         fo = open(f, "r")
         last_values = {}
         lineNumber = 0
+        
         for line in fo:
             lineNumber += 1
             if len(line.strip()) == 0 or line == '\n':
@@ -200,16 +201,25 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
         curtime = str(dt.datetime.now()).replace(' ','_').replace('-','').replace(':','').replace('.','')
         try:
             fileinfo = os.path.split(f)
-            destination = fileinfo[0] + os.sep + "logged_" + curtime + "_" + fileinfo[1]
+            d1 = dt.datetime.today().strftime("%Y-%m-%d")
+            try:
+                #create new directory based on current date 
+                os.makedirs(fileinfo[0]+os.sep+d1)
+            except:
+                #path already exists
+                pass
+            #Build destination path
+            destination = fileinfo[0] + os.sep + d1 + os.sep + "logged_" + curtime + "_" + fileinfo[1]
             if rename:
-                os.rename(f, destination)
-                print("    Renamed " + f + " to logged_" + curtime + "_" + fileinfo[1])
+                shutil.move(f, destination)
+                #os.rename(f, destination)
+                print("    Renamed {0} to {1}".format(f, destination))
         except:
             print("    Could not rename log file: " + f)
             
         return "    Completed file " + f
 
-def importLogs(host=None, db=None, u=None, p=None, logfile=None, rename=True):
+def importLogs(host=None, db=None, u=None, p=None, logfile=None, logfile_schema=None, rename=True):
     if logfile is None:
         print("No file was provided. Exiting...")
         exit()
@@ -244,7 +254,7 @@ def importLogs(host=None, db=None, u=None, p=None, logfile=None, rename=True):
         for f in logfiles: 
             try:
                 objmodel_starttime = dt.datetime.now()
-                result = importLogfiles(host, db, u, p, 'oms_logfiles', f, rename) 
+                result = importLogfiles(host, db, u, p, logfile_schema, f, rename) 
                 print(result)
                 objectmodel_run_time = dt.datetime.now()
                 print("    Imported in " + str(objectmodel_run_time-objmodel_starttime))
@@ -254,6 +264,11 @@ def importLogs(host=None, db=None, u=None, p=None, logfile=None, rename=True):
     else:
         print("No new logs to be inserted!")
 
+def run(host, db, u, p, d_logs, logfile_schema, renameFile):
+    importLogs(host, db, u, p, d_logs['objectmodel'], logfile_schema, renameFile)
+    importLogs(host, db, u, p, d_logs['omsclient'], logfile_schema, renameFile)
+    importLogs(host, db, u, p, d_logs['savedata'], logfile_schema, renameFile)
+    
 if __name__ == "__main__":
     #
     # Update the parameters & log file path before running the utility
@@ -265,33 +280,52 @@ if __name__ == "__main__":
     logfile_schema = 'oms_logfiles'
     archive_schema = 'oms_archives'
     renameFile = True
+    archive = True
+    
+    d_logs = {
+        'oms_log_path':         r'C:\map_files\Logs',
+        'intg_serv_path':       r'C:\map_files\Logs',
+        'webservice_path':      r'C:\map_files\Logs',
+        'objectmodel':          r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'omsclient':            r'C:\map_files\Logs\OMSClient\omsclient.log',
+        'savedata':             r'C:\map_files\Logs\SaveData\savedata.log',
+        'integrationservice':   r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_ServiceLog.txt',
+        'ami':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'ami_test':             r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'avl':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'calltracker':          r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'crc':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'ivr':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'scada':                r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'upn':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log'
+    }
     
     ### Should be no need to modify anything below this line ###
     import datetime as dt
     starttime = dt.datetime.now()
     print("Started Existing Log Backup Process: " + str(starttime))
-    backup = backupOMSLogs(host, db, u, p, logfile_schema, archive_schema)
-    #print(backup)
-    if backup == 1:
+    if archive == True:
+        backup = backupOMSLogs(host, db, u, p, logfile_schema, archive_schema)
+        print(backup)
+
+    if archive == True and backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
         
-        importLogs(host, db, u, p, r"C:\map_files\Logs\ObjectModel\objectmodel.log", renameFile)
-        importLogs(host, db, u, p, r"C:\map_files\Logs\OMSClient\omsclient.log", renameFile)
-        importLogs(host, db, u, p, r"C:\map_files\Logs\SaveData\savedata.log", renameFile)
-        
-        """
-        importLogs(host, db, u, p, r"C:\oms_logs\omsprod\ObjectModel\objectmodel.log", renameFile)
-        importLogs(host, db, u, p, r"C:\oms_logs\omsprod\OMSClient\omsclient.log", renameFile)
-        importLogs(host, db, u, p, r"C:\oms_logs\omsprod\SaveData\savedata.log", renameFile)
-        """
+        run(host, db, u, p, d_logs, logfile_schema, renameFile)
         
         endtime = dt.datetime.now()
-    else:
+    elif archive == True and backup != 1:
         if type(backup) is int:
             print("OMS Console Data Backup failed with error code: {0}".format(str(backup)))
         else:
             for err in backup:
                 print(err)
+        endtime = dt.datetime.now()
+    elif archive == False:
+        print("Starting Import process: " + str(dt.datetime.now()))
+        
+        run(host, db, u, p, d_logs, logfile_schema, renameFile)
+        
         endtime = dt.datetime.now()
     
     print("Total script time: " + str(endtime-starttime))
