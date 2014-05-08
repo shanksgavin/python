@@ -211,6 +211,7 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
             #Build destination path
             destination = fileinfo[0] + os.sep + d1 + os.sep + "logged_" + curtime + "_" + fileinfo[1]
             if rename:
+                #move file into a folder named based on the day of import
                 shutil.move(f, destination)
                 #os.rename(f, destination)
                 print("    Renamed {0} to {1}".format(f, destination))
