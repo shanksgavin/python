@@ -10,14 +10,14 @@ Modified: October 7, 2013
 
 import sys
 
-def createLoggingSchema(db=None, schema=None, u=None, p=None):
+def createLoggingSchema(d_logs):
     """
     Function to create the schema for importing log files
     """
     errors = tuple()
-    if db is None:
+    if d_logs['db'] is None:
         errors += ("database not supplied",)
-    if schema is None:
+    if d_logs['logfile_schema'] is None:
         errors += ("schema not supplied",)
     #test if any errors exist. if any exit function and return errors
     if len(errors) > 0:
@@ -36,7 +36,7 @@ def createLoggingSchema(db=None, schema=None, u=None, p=None):
             sys.exit()
             
         try:
-            conn_string = "host='" + host + "' dbname='" + db + "' user='" + u + "' password='" + p + "'"
+            conn_string = "host='{0}' dbanme='{1}' user='{2}' password='{3}'".format(d_logs['host'],d_logs['db'],d_logs['u'],d_logs['p'])
             conn = psy.connect(conn_string)
             cursor = conn.cursor()
             curtime = dt.datetime.now()
