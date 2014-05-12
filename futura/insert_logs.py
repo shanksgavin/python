@@ -265,67 +265,89 @@ def importLogs(host=None, db=None, u=None, p=None, logfile=None, logfile_schema=
     else:
         print("No new logs to be inserted!")
 
-def run(host, db, u, p, d_logs, logfile_schema, renameFile):
-    importLogs(host, db, u, p, d_logs['objectmodel'], logfile_schema, renameFile)
-    importLogs(host, db, u, p, d_logs['omsclient'], logfile_schema, renameFile)
-    importLogs(host, db, u, p, d_logs['savedata'], logfile_schema, renameFile)
+def run(d_logs):
+    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['objectmodel'], d_logs['logfile_schema'], d_logs['renameFile'])
+    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['omsclient'], d_logs['logfile_schema'], d_logs['renameFile'])
+    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['savedata'], d_logs['logfile_schema'], d_logs['renameFile'])
     
 if __name__ == "__main__":
     #
     # Update the parameters & log file path before running the utility
     #
-    host = 'localhost'
-    db = 'wiregrass_121' #north_ga_logs #wiregrass_2_2_0_84 #oms_inland_power
-    u = 'postgres'
-    p = 'usouth'
-    logfile_schema = 'oms_logfiles'
-    archive_schema = 'oms_archives'
-    renameFile = True
-    archive = True
-    
-    d_logs = {
-        'oms_log_path':         r'C:\map_files\Logs',
+    d_logs_local = {
+        'host'      : 'localhost',
+        'db'        : 'wiregrass_121',
+        'u'         : 'postgres',
+        'p'         : 'usouth',
+        'logfile_schema': 'oms_logfiles',
+        'archive_schema': 'oms_archives',
+        'renameFile'    : True,
+        'archive'       : True,
+        'oms_log_path'  :       r'C:\map_files\Logs',
         'intg_serv_path':       r'C:\map_files\Logs',
         'webservice_path':      r'C:\map_files\Logs',
-        'objectmodel':          r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'omsclient':            r'C:\map_files\Logs\OMSClient\omsclient.log',
-        'savedata':             r'C:\map_files\Logs\SaveData\savedata.log',
+        'objectmodel'   :       r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'omsclient'     :       r'C:\map_files\Logs\OMSClient\omsclient.log',
+        'savedata'      :       r'C:\map_files\Logs\SaveData\savedata.log',
         'integrationservice':   r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_ServiceLog.txt',
-        'ami':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'ami_test':             r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'avl':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'ami'       :           r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'ami_test'  :           r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'avl'       :           r'C:\map_files\Logs\ObjectModel\objectmodel.log',
         'calltracker':          r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'crc':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'ivr':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'scada':                r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'upn':                  r'C:\map_files\Logs\ObjectModel\objectmodel.log'
+        'crc'       :           r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'ivr'       :           r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'scada'     :           r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+        'upn'       :           r'C:\map_files\Logs\ObjectModel\objectmodel.log'
     }
+    
+    d_logs_omsprod = {
+        'host': 'omsprod',
+        'db': 'inland_30130926',
+        'u': 'postgres',
+        'p': 'usouth',
+        'logfile_schema': 'oms_logfiles',
+        'archive_schema': 'oms_archives',
+        'renameFile': True,
+        'archive': True,
+        'objectmodel':          r'C:\oms_logs\omsprod\ObjectModel\objectmodel.log',
+        'omsclient':            r'C:\oms_logs\omsprod\OMSClient\omsclient.log',
+        'savedata':             r'C:\oms_logs\omsprod\SaveData\savedata.log',
+        'integrationservice':   r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_ServiceLog.txt',
+    }
+    
+    """
+    # assign the active path dictionary before running
+    """
+    d_logs = d_logs_local
+    
     
     ### Should be no need to modify anything below this line ###
     import datetime as dt
     starttime = dt.datetime.now()
-    print("Started Existing Log Backup Process: " + str(starttime))
-    if archive == True:
-        backup = backupOMSLogs(host, db, u, p, logfile_schema, archive_schema)
+    
+    if d_logs['archive'] == True:
+        print("Started Existing Log Backup Process: " + str(starttime))
+        backup = backupOMSLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['logfile_schema'], d_logs['archive_schema'])
         print(backup)
 
-    if archive == True and backup == 1:
+    if d_logs['archive'] == True and backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
         
-        run(host, db, u, p, d_logs, logfile_schema, renameFile)
+        run(d_logs)
         
         endtime = dt.datetime.now()
-    elif archive == True and backup != 1:
+    elif d_logs['archive'] == True and backup != 1:
         if type(backup) is int:
             print("OMS Console Data Backup failed with error code: {0}".format(str(backup)))
         else:
             for err in backup:
                 print(err)
         endtime = dt.datetime.now()
-    elif archive == False:
+    elif d_logs['archive'] == False:
+        print("Not Archiving OMSLOGS table prior to this Import process")
         print("Starting Import process: " + str(dt.datetime.now()))
         
-        run(host, db, u, p, d_logs, logfile_schema, renameFile)
+        run(d_logs)
         
         endtime = dt.datetime.now()
     
