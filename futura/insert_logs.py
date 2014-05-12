@@ -318,7 +318,7 @@ if __name__ == "__main__":
     """
     # assign the active path dictionary before running
     """
-    d_logs = d_logs_local
+    d_logs = d_logs_omsprod
     
     
     ### Should be no need to modify anything below this line ###
@@ -329,14 +329,16 @@ if __name__ == "__main__":
         print("Started Existing Log Backup Process: " + str(starttime))
         backup = backupOMSLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['logfile_schema'], d_logs['archive_schema'])
         print(backup)
+    else:
+        backup = 1
 
-    if d_logs['archive'] == True and backup == 1:
+    if d_logs['archive'] and backup == 1:
         print("Starting Import process: " + str(dt.datetime.now()))
         
         run(d_logs)
         
         endtime = dt.datetime.now()
-    elif d_logs['archive'] == True and backup != 1:
+    elif d_logs['archive'] and backup != 1:
         if type(backup) is int:
             print("OMS Console Data Backup failed with error code: {0}".format(str(backup)))
         else:
