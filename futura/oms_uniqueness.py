@@ -239,7 +239,7 @@ if __name__ == '__main__':
     if c.Tables is not None:
         # Loop through each table to get the fields 
         for tbl in c.Tables:
-            print('Processing {0} table...'.format(tbl))
+            print('Processing {0}'.format(tbl))
             c.get_fields(tbl)
             # Run DISTINCT sql query on all data in selected column of selected table
             for fld in c.Fields:
