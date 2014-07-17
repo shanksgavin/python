@@ -1,0 +1,25 @@
+﻿table {
+    border-collapse:collapse;
+}
+td {
+    padding-left:6px;
+    padding-right:6px;
+}
+tr.header {
+    border:1px solid #006699;
+    background-color:#006699;
+    color:white;
+}
+tr.subheader 
+{
+    text-align:right;
+    background-color:#F0EFEF;
+    color:grey;
+    font-size:24px;
+}
+tr.body {
+    border:1px solid #F0EFEF;
+}
+tr.alt {
+    background-color:#F0EFEF;
+}
