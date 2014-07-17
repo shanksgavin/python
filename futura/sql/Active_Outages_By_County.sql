@@ -1,9 +1,21 @@
-select c.elementid, c.element, c.casenum, c.custout, c.casestatus, c.status, c.elementname, c.feeder, c.deleted
-from cases as c, casescustomers as cc, meterbase as m 
-where c.casenum = cc.casenum
-and cc.customer = m.elementid
-and c.casestatus in ('CauseFound', 'CauseUnknown', 'Predicted')
-and c.deleted = FALSE
+select c.record_id, c.elementid, c.deviceout, c.ticketnum, c.code, cb.elementid, cb.casenum, cb.casestatus, cb.calls
+from calls as c
+left outer join callbundles as cb
+on c.deviceout = cb.elementid
+where c.callstatus ilike 'ACTIVE'
+and cb.elementid is not null
+
 UNION
-select cb.elementid, cb.element, cb.casenum, cb.custout, cb.casestatus, cb.status, cb.elementname, cb.feeder, cb.deleted
-from callbundles as cb
+
+select c.record_id, c.elementid, c.deviceout, c.ticketnum, c.code, cb.elementid, cb.casenum, cb.casestatus, cb.calls
+from calls as c
+left outer join callbundles as cb
+on c.deviceout = cb.elementname
+where c.callstatus ilike 'ACTIVE'
+and cb.elementname is not null;
+
+-- select *
+-- from calls as c
+-- left outer join callbundles as cb
+-- on c.deviceout = cb.elementid
+-- where c.callstatus ilike 'ACTIVE';
