@@ -190,19 +190,19 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None, rena
                             category = line[beginCategory:endCategory]
                             message = line[endCategory:].replace('\n', '')
                         try:
-                            sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                            sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
                             cursor.execute(sqlInsert)
                             #conn.commit()
                             #cursor.execute("""INSERT INTO omsclient (date_, time_, time_ms, category, message) VALUES (to_date('{0}', 'YYYY-MM-DD'), to_timestamp('{1}', 'HH24:MI:SS'), {2}, '{3}', {4});\n""".format(date_, time_, time_ms, category, psycopg2.extensions.QuotedString(message).getquoted()))
                         except:
-                            sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'insert_issue', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                            sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'insert_issue', psy.extensions.QuotedString(line.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
                             cursor.execute(sqlInsert)
                             #conn.commit()
                     else:
-                        sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'additional_lines', psy.extensions.QuotedString(line.replace('\n', '')).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                        sqlInsert = u"""INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});\n""".format(schema, last_values['date_'], last_values['time_'], 'additional_lines', psy.extensions.QuotedString(line.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
                         #conn.commit()
-                if lineNumber % 2500 == 0:
+                if lineNumber % 5000 == 0:
                     conn.commit()
                     #print(str(lineNumber) + " successfully committed")
                 
@@ -242,17 +242,8 @@ def importLogs(host=None, db=None, u=None, p=None, logfile=None, logfile_schema=
         exit()
         
     #import needed modules
-    #import os
     import glob
     import datetime as dt
-    
-    #check if base name of file exists
-    #logfileExists = os.path.isfile(logfile)
-    
-    #if logfileExists == False:
-        #print a statement that file path provided is not useful then exit
-        #print("No files available for import. ")
-        #return None
     
     #Adding wildcard to path for glob.iglob to find all files with matching basename    
     logfile += "*"
@@ -279,71 +270,115 @@ def importLogs(host=None, db=None, u=None, p=None, logfile=None, logfile_schema=
                 print("    Couldn't import {0} at line {1} with error {2}".format(f, result[1], result[0]))
                 print(e)
     else:
-        print("No new logs to be inserted!")
+        print("No new logs to be inserted! ({0})".format(logfile))
 
 def run(d_logs):
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['objectmodel'], d_logs['logfile_schema'], d_logs['renameFile'])
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['omsclient'], d_logs['logfile_schema'], d_logs['renameFile'])
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['savedata'], d_logs['logfile_schema'], d_logs['renameFile'])
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['integrationservice'], d_logs['logfile_schema'], d_logs['renameFile'])
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['integrationservicecontrol'], d_logs['logfile_schema'], d_logs['renameFile'])
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['ivr'], d_logs['logfile_schema'], d_logs['renameFile'])
-    importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['ivrcallback'], d_logs['logfile_schema'], d_logs['renameFile'])
+    """
+    loop over available log paths
+    See dictionaries below
+    """
+    for log in d_logs['oms_log_path']:
+        importLogs(d_logs['host'], d_logs['db'], d_logs['u'], d_logs['p'], d_logs['oms_log_path'][log], d_logs['logfile_schema'], d_logs['renameFile'])
     
 if __name__ == "__main__":
     #
     # Update the parameters & log file path before running the utility
     #
     d_logs_local = {
-        'host'      : 'localhost',
-        'db'        : 'wiregrass_121',
-        'u'         : 'postgres',
-        'p'         : 'usouth',
+        'host'          : 'localhost',
+        'db'            : 'wiregrass_121',
+        'u'             : 'postgres',
+        'p'             : 'usouth',
         'logfile_schema': 'oms_logfiles',
         'archive_schema': 'oms_archives',
         'renameFile'    : True,
         'archive'       : False,
-        'oms_log_path'  :       r'C:\map_files\Logs',
-        'intg_serv_path':       r'C:\map_files\Logs',
-        'webservice_path':      r'C:\map_files\Logs',
-        'objectmodel'   :       r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'omsclient'     :       r'C:\map_files\Logs\OMSClient\omsclient.log',
-        'savedata'      :       r'C:\map_files\Logs\SaveData\savedata.log',
-        'integrationservice':   r'C:\map_files\Logs\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
-        'integrationservicecontrol':   r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
-        'ami'       :           r'C:\map_files\Logs\AMI\OMS_AMI_WebserviceLog.txt',
-        'ami_test'  :           r'C:\map_files\Logs\AMI\AMI_OMS_TEST_WebService_Log.txt',
-        'avl'       :           r'C:\map_files\Logs\AVL\objectmodel.log',
-        'crc'       :           r'C:\map_files\Logs\CRC\objectmodel.log',
-        'ivr'       :           r'C:\map_files\Logs\IVR\OMS_IVR_Webservice.txt',
-        'ivrcallback'       :   r'C:\map_files\Logs\IVR\IVR_OMS_Callback_Webservice.txt',
-        'scada'     :           r'C:\map_files\Logs\SCADA\objectmodel.log',
-        'upn'       :           r'C:\map_files\Logs\UPN\objectmodel.log'
-    }
+        'oms_log_path'  : {'objectmodel': r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+                           'omsclient': r'C:\map_files\Logs\OMSClient\omsclient.log',
+                           'savedata': r'C:\map_files\Logs\SaveData\savedata.log',
+                           'integrationservice': r'C:\map_files\Logs\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
+                           'integrationservicecontrol': r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                           'ami': r'C:\map_files\Logs\AMI\OMS_AMI_WebserviceLog.txt',
+                           'ami_test': r'C:\map_files\Logs\AMI\AMI_OMS_TEST_WebService_Log.txt',
+                           'avl': r'C:\map_files\Logs\AVL\FuturaOMS_AVL.txt',
+                           'crc': r'C:\map_files\Logs\CRC\FuturaOMS_CRC.txt',
+                           'ivr': r'C:\map_files\Logs\IVR\OMS_IVR_Webservice.txt',
+                           'ivrcallback': r'C:\map_files\Logs\IVR\IVR_OMS_Callback_Webservice.txt',
+                           'scada': r'C:\map_files\Logs\SCADA\OMS_SCADA_WebserviceLog.txt',
+                           'upn': r'C:\map_files\Logs\UPN\FuturaOMS_UPN.txt'}
+                    }
     
     d_logs_omsprod = {
-        'host': 'omsprod',
-        'db': 'inland_20130926',
-        'u': 'postgres',
-        'p': 'usouth',
+        'host'          : 'omsprod',
+        'db'            : 'inland_20130926',
+        'u'             : 'postgres',
+        'p'             : 'usouth',
         'logfile_schema': 'oms_logfiles',
         'archive_schema': 'oms_archives',
-        'renameFile': True,
-        'archive': True,
-        'objectmodel'   :       r'C:\map_files\Logs\ObjectModel\objectmodel.log',
-        'omsclient'     :       r'C:\map_files\Logs\OMSClient\omsclient.log',
-        'savedata'      :       r'C:\map_files\Logs\SaveData\savedata.log',
-        'objectmodel_remote':          r'C:\oms_logs\omsprod\ObjectModel\objectmodel.log',
-        'omsclient_remote':            r'C:\oms_logs\omsprod\OMSClient\omsclient.log',
-        'savedata_remote':             r'C:\oms_logs\omsprod\SaveData\savedata.log',
-        'integrationservice':          r'C:\oms_logs\omsprod\IntegrationService\FuturaOMS_IntegrationServiceLog',
-        'integrationservicecontrol':   r'C:\oms_logs\omsprod\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt'
-    }
+        'renameFile'    : True,
+        'archive'       : True,
+        'oms_log_path'  : {
+                         'objectmodel': r'C:\oms_logs\omsprod\ObjectModel\objectmodel.log',
+                         'omsclient': r'C:\oms_logs\omsprod\OMSClient\omsclient.log',
+                         'savedata': r'C:\oms_logs\omsprod\SaveData\savedata.log',
+                         'integrationservice': r'C:\oms_logs\omsprod\IntegrationService\FuturaOMS_IntegrationServiceLog',
+                         'integrationservicecontrol': r'C:\oms_logs\omsprod\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                         'ivrcallback':r'C:\oms_logs\omsprod\IVR\OMS_IVR_Callback_Webservice.txt',
+                         'ivr':r'C:\oms_logs\omsprod\IVR\OMS_IVR_Webservice.txt',
+                         'upn': r'C:\oms_logs\omsprod\UPN\FuturaOMS_UPN.txt'
+                        }
+                    }
+    
+    d_logs_central_ec = {
+        'host'           : 'localhost',
+        'db'            : 'central_ec',
+        'u'             : 'postgres',
+        'p'             : 'usouth',
+        'logfile_schema': 'oms_logfiles',
+        'archive_schema': 'oms_archives',
+        'renameFile'    : True,
+        'archive'       : False,
+        'oms_log_path'  : {'crc': r'C:\oms_logs\CentralEC_OR\CRC Logs 5-1-5-2014\FuturaOMS_CRC.txt'},
+        'oms_log_path_default'  : {'objectmodel': r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+                           'omsclient': r'C:\map_files\Logs\OMSClient\omsclient.log',
+                           'savedata': r'C:\map_files\Logs\SaveData\savedata.log',
+                           'integrationservice': r'C:\map_files\Logs\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
+                           'integrationservicecontrol': r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                           'ami': r'C:\map_files\Logs\AMI\OMS_AMI_WebserviceLog.txt',
+                           'ami_test': r'C:\map_files\Logs\AMI\AMI_OMS_TEST_WebService_Log.txt',
+                           'avl': r'C:\map_files\Logs\AVL\FuturaOMS_AVL.txt',
+                           'crc': r'C:\map_files\Logs\CRC\FuturaOMS_CRC.txt',
+                           'ivr': r'C:\map_files\Logs\IVR\OMS_IVR_Webservice.txt',
+                           'ivrcallback': r'C:\map_files\Logs\IVR\IVR_OMS_Callback_Webservice.txt',
+                           'scada': r'C:\map_files\Logs\SCADA\OMS_SCADA_WebserviceLog.txt',
+                           'upn': r'C:\map_files\Logs\UPN\FuturaOMS_UPN.txt'}
+                    }
+    
+    d_logs_homer = {
+        'host'          : 'localhost',
+        'db'            : 'oms_homer',
+        'u'             : 'postgres',
+        'p'             : 'usouth',
+        'logfile_schema': 'oms_logfiles',
+        'archive_schema': 'oms_archives',
+        'renameFile'    : True,
+        'archive'       : False,
+        'oms_log_path'  : {'objectmodel': r'C:\oms_logs\homer\ObjectModel\objectmodel.log',
+                           'omsclient': r'C:\oms_logs\homer\OMSClient\omsclient.log',
+                           'savedata': r'C:\oms_logs\homer\SaveData\savedata.log',
+                           'integrationservice': r'C:\oms_logs\homer\IntegrationService\FuturaOMS_IntegrationServiceLog',
+                           'integrationservice2': r'C:\oms_logs\homer\IntegrationService\FuturaOMS_IntegratoinServiceLog',
+                           'integrationservicecontrol': r'C:\oms_logs\homer\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                           'integrationserviceIVRSocket': r'C:\oms_logs\homer\IntegrationService\OMS_IVR_SocketLog',
+                           'ami': r'C:\oms_logs\homer\AMI\OMS_AMI_WebserviceLog.txt',
+                           'ivr': r'C:\oms_logs\homer\IVR\OMS_IVR_Webservice.txt',
+                           'upn': r'C:\oms_logs\homer\UPN\FuturaOMS_UPN.txt'}
+                    }
     
     """
     # assign the active path dictionary before running
     """
-    d_logs = d_logs_local
+    d_logs = d_logs_homer
     
     
     ### Should be no need to modify anything below this line ###

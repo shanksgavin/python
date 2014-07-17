@@ -1,14 +1,21 @@
 # coding:utf-8
 '''
 Created on May 20, 2013
-Updated on Aug 14, 2013
+Updated on February 27, 2014
 @author: williamg
 
 @todo: add functionality to update layer's definition query
+@todo: copy MasterOMSFeatures.gdb then rename to OMS_Features.gdb
+@todo: update OMS_Features.gdb FCs to match Client's Spatial Ref
+@todo: make sure all current OMS Features are in the map (e.g. tags)
 
 '''
 
 import arcpy
+import datetime, os
+# Obtain current date & time to append to MXD filename
+CURRENT_TIME = datetime.datetime.now()
+current_time = str(CURRENT_TIME)[:19].replace(' ','_').replace('-','').replace(':','').replace('.','')
 
 def printMXDLayers(mapDoc=None):
     mxd = arcpy.mapping.MapDocument(mapDoc)
@@ -25,12 +32,97 @@ def printMXDLayers(mapDoc=None):
             counter += 1
     del mxd
 
-def updateLabelClasses(mapDoc=None, mapVersion=None, logging=True):
-    import datetime
-    # Obtain current date & time to append to MXD filename
-    CURRENT_TIME = datetime.datetime.now()
-    current_time = str(CURRENT_TIME)[:19].replace(' ','_').replace('-','').replace(':','').replace('.','')
+def getOMSFeatures(src, dst, symlinks=False, ignore=None, logging=False):
+    import shutil
+    if logging:
+        log = open(mapDocument[:-4] + "_" + current_time + ".log", "w+")
+    try:
+        shutil.copytree(src, dst, symlinks, ignore)
+    except OSError as e:
+        if logging:
+            log.write(e)
+            log.close()
+        return -1
+    if logging:
+        log.close()
+    return 0
     
+def updateOMSFeaturesSpatRef(wksp=None, spatRef=None, logging=False):
+    """
+    updateOMSFeaturesSpatRef(wksp=None, spatRef=None) updates the spatial reference
+    of all the features in the OMS_Features.gdb to match the Client's GIS data.
+    User will need to either select the spatial reference from the list in the toolbox
+    or import the projection for an existing dataset or feature class. 
+    """
+    if logging:
+        log = open(mapDocument[:-4] + "_" + current_time + ".log", "w+")
+    
+    #set the oms_features.gdb to the wksp
+    arcpy.env.workspace = wksp
+    
+    #set the spatial reference to object
+    sr = arcpy.SpatialReference(spatRef)
+    
+    #get list of all fcs in wksp
+    fcs = arcpy.ListFeatureClasses()
+    
+    #process each fc
+    for fc in fcs:
+        try:
+            arcpy.DefineProjection_management(fc, sr)
+            arcpy.AddMessage("Spatial Projection Updated: " + fc + " (" + sr +")")
+            if logging:
+                log.write("Spatial Projection Updated: " + fc + " (" + sr +")")
+        except:
+            arcpy.AddError("Spatial Projection Update Failed: " + fc)
+            if logging:
+                log.write("Spatial Projection Update Failed: " + fc)
+            return -1
+    
+    if logging:
+        log.close()
+        
+    return 1
+
+def checkOMSFeaturesGLayer(mapDocument, OMSFeatures, logging):
+    if logging:
+        log = open(mapDocument[:-4] + "_" + current_time + ".log", "w+")
+    
+    mxd = arcpy.mapping.MapDocument(mapDocument)
+    df  = arcpy.mapping.ListDataFrames(mxd, "")[0]
+    targetGroupLayer = arcpy.mapping.ListLayers(mxd, "OMS Features", df)[0]
+    omsFeatures = ['calls','cases','custout','tags','notes','switching','trucks']
+    
+    if logging:
+        arcpy.AddMessage("Checking OMS Features Group Layer in {0} data frame of {1}".format(df, mxd))
+        log.write("Checking OMS Features Group Layer in {0} data frame of {1}".format(df, mxd))
+        
+    lyrs = arcpy.mapping.ListLayers(mxd, "", df)
+    for lyr in lyrs:
+        if 'OMS Features' in lyr.longName and not lyr.isGroupLayer:
+            #status = 'Present'
+            if lyr.name in omsFeatures:
+                omsFeatures.remove(omsFeatures.index(lyr.name))
+            else:
+                #status = 'Not Present'
+                addLayer = arcpy.mapping.Layer(OMSFeatures + os.sep + lyr.name)
+                try:
+                    arcpy.mapping.AddLayerToGroup(df, targetGroupLayer, addLayer, "BOTTOM")
+                except:
+                    if logging:
+                        log.write("Failed to Add Layer {0} to group layer".format(lyr.name))
+                    arcpy.AddError("Failed to Add Layer {0} to group layer".format(lyr.name))
+            if logging:
+                log.write("Processed Layer: {0}".format(lyr.name))
+        elif 'OMS Features' not in lyr.longName and lyr.isGroupLayer:
+            if logging:
+                log.write("Exiting at Layer: {0}".format(lyr.name))
+            return
+    
+    if logging:
+        log.close()
+            
+def updateLabelClasses(mapDoc=None, mapVersion=None, logging=True):
     # Open log file to create a log of changes
     # Default is True
     if logging:
@@ -261,7 +353,32 @@ if arcpy.GetParameterAsText(2) is None:
     exit()
 else:
     mapVersion = arcpy.GetParameterAsText(2)
-    
+# # Define Source Path to the Master OMS_Features.gdb
+# if arcpy.GetParameterAsText(3) is None or arcpy.GetParameterAsText(3) == '':
+#     #r"\\orion\Common\GISServerSetupDVD\OMS\Master_OMS_Features.gdb"
+#     arcpy.AddError("Master_OMS_Features.gdb Path is required")
+#     exit()
+# else:
+#     MasterOMSFeatures = arcpy.GetParameterAsText(3)
+# # Define Destination Path for the OMS_Features.gdb
+# if arcpy.GetParameterAsText(4) is None or arcpy.GetParameterAsText(4) == '':
+#     #r"C:\map_files\OMS_Features.gdb"
+#     arcpy.AddError("OMS_Features.gdb Path is required")
+#     exit()
+# else:
+#     OMSFeatures = arcpy.GetParameterAsText(4)
+# # Define Master Spatial Reference
+# if arcpy.GetParameterAsText(5) is None or arcpy.GetParameterAsText(5) == '':
+#     #r"C:\map_files\OMS_Features.gdb"
+#     arcpy.AddError("Spatial Reference is required")
+#     exit()
+# else:
+#     spatRef = arcpy.GetParameterAsText(5)
+        
 # Run Script now that variables are defined
+#getOMSFeatures(MasterOMSFeatures, OMSFeatures, False, None, logging)
+#updateOMSFeaturesSpatRef(OMSFeatures, spatRef, logging)
+#checkOMSFeaturesGLayer(mapDocument, OMSFeatures, logging)
 updateLabelClasses(mapDocument, mapVersion, logging)
 arcpy.AddMessage("Script Completed.")
+

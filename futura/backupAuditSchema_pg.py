@@ -66,7 +66,7 @@ def backupAuditData(host=None, db=None, user=None, pw=None, srcSchema=None, dest
             
 if __name__ == "__main__":
     host = 'localhost'
-    db = 'wiregrass_121'
+    db = 'coweta-fayette'
     user = 'postgres'
     pw = 'usouth'
     srcSchema = 'oms_audits'

@@ -193,13 +193,13 @@ def importLogfiles(host=None, db=None, u=None, p=None, schema=None, f=None):
                             category = line[beginCategory:endCategory]
                             message = line[endCategory:].replace('\n', '')
                         try:
-                            sqlInsert = u"INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                            sqlInsert = u"INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', E{4}, E{5});".format(schema, date_, time_, category, psy.extensions.QuotedString(message.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
                             cursor.execute(sqlInsert)
                         except:
-                            sqlInsert = u"INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});".format(schema, last_values['date_'], last_values['time_'], 'insert_issue', psy.extensions.QuotedString(line.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                            sqlInsert = u"INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', E{4}, E{5});".format(schema, last_values['date_'], last_values['time_'], 'insert_issue', psy.extensions.QuotedString(line.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
                             cursor.execute(sqlInsert)
                     else:
-                        sqlInsert = u"INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', {4}, {5});".format(schema, last_values['date_'], last_values['time_'], 'additional_lines', psy.extensions.QuotedString(line.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
+                        sqlInsert = u"INSERT INTO {0}.omslogs (date_, time_, category, message, logfile) VALUES (to_date('{1}', 'YYYY-MM-DD'), to_timestamp('{2}', 'HH24:MI:SS,MS'), '{3}', E{4}, E{5});".format(schema, last_values['date_'], last_values['time_'], 'additional_lines', psy.extensions.QuotedString(line.replace('\n', '').strip()).getquoted(), psy.extensions.QuotedString(f).getquoted())
                         cursor.execute(sqlInsert)
                 if lineNumber % 5000 == 0:
                     conn.commit()
@@ -399,33 +399,79 @@ if __name__ == "__main__":
     
     d_logs_homer = {
         'host'          : 'localhost',
-        'db'            : 'oms_homer',
+        'db'            : 'oms_homer_20140619',
         'u'             : 'postgres',
         'p'             : 'usouth',
         'logfile_schema': 'oms_logfiles',
         'archive_schema': 'oms_archives',
-        'renameFile'    : False,
+        'renameFile'    : True,
         'moveFile'      : True,
         'archive'       : False,
         'truncate'      : False,
-        'oms_log_path'  : {'objectmodel': r'C:\oms_logs\homer\ObjectModel\objectmodel.log',
-                           'omsclient': r'C:\oms_logs\homer\OMSClient\omsclient.log',
-                           'savedata': r'C:\oms_logs\homer\SaveData\savedata.log',
-                           'integrationservice': r'C:\oms_logs\homer\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
-                           'integrationservice2': r'C:\oms_logs\homer\IntegrationService\FuturaOMS_IntegratoinServiceLog.txt',
-                           'test': r'',
-                           'integrationservicecontrol': r'C:\oms_logs\homer\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
-                           'integrationserviceIVRSocket': r'C:\oms_logs\homer\IntegrationService\OMS_IVR_SocketLog.txt',
-                           'ami': r'C:\oms_logs\homer\AMI\OMS_AMI_WebserviceLog.txt',
-                           'ivr': r'C:\oms_logs\homer\IVR\OMS_IVR_Webservice.txt',
-                           'upn': r'C:\oms_logs\homer\UPN\FuturaOMS_UPN.txt'
+        'oms_log_path'  : {'objectmodel': r'C:\oms_logs\homer\20140619-event\ObjectModel\objectmodel.log',
+                           'omsclient': r'C:\oms_logs\homer\20140619-event\OMSClient\omsclient.log',
+                           'savedata': r'C:\oms_logs\homer\20140619-event\SaveData\savedata.log',
+                           'integrationservice': r'C:\oms_logs\homer\20140619-event\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
+                           'integrationservice2': r'C:\oms_logs\homer\20140619-event\IntegrationService\FuturaOMS_IntegratoinServiceLog.txt',
+                           'integrationservicecontrol': r'C:\oms_logs\homer\20140619-event\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                           'integrationserviceIVRSocket': r'C:\oms_logs\homer\20140619-event\IntegrationService\OMS_IVR_SocketLog.txt',
+                           'ami': r'C:\oms_logs\homer\20140619-event\AMI\OMS_AMI_WebserviceLog.txt',
+                           'ivr': r'C:\oms_logs\homer\20140619-event\IVR\OMS_IVR_Webservice.txt',
+                           'upn': r'C:\oms_logs\homer\20140619-event\UPN\FuturaOMS_UPN.txt'
                            }
                     }
     
+    d_logs_coweta_fayette = {
+        'host'          : 'localhost',
+        'db'            : 'coweta-fayette',
+        'u'             : 'postgres',
+        'p'             : 'usouth',
+        'logfile_schema': 'oms_logfiles',
+        'archive_schema': 'oms_archives',
+        'renameFile'    : True,
+        'moveFile'      : True,
+        'archive'       : False,
+        'truncate'      : False,
+        'oms_log_path'  : {'objectmodel': r'C:\map_files\Logs\ObjectModel\objectmodel.log',
+                           'omsclient': r'C:\map_files\Logs\OMSClient\omsclient.log',
+                           'savedata': r'C:\map_files\Logs\SaveData\savedata.log',
+                           'integrationservice': r'C:\map_files\Logs\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
+                           'integrationservicecontrol': r'C:\map_files\Logs\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                           'integrationserviceIVRSocket': r'C:\map_files\Logs\IntegrationService\OMS_IVR_SocketLog.txt',
+                           'oms_ami': r'C:\map_files\Logs\AMI\OMS_AMI_WebserviceLog.txt',
+                           'ami_oms': r'C:\map_files\Logs\AMI\AMI_OMS_TEST_WebService_Log.txt',
+                           'ivr': r'C:\map_files\Logs\IVR\OMS_IVR_Webservice.txt',
+                           'ivr_callback': r'C:\map_files\Logs\IVR\IVR_OMS_Callback_Webservice.txt',
+                           'upn': r'C:\map_files\Logs\UPN\FuturaOMS_UPN.txt',
+                           'crc': r'C:\map_files\Logs\CRC\FuturaOMS_CRC.txt',
+                           'scada': r'C:\map_files\Logs\SCADA\OMS_SCADA_WebServiceLog.txt'
+                           }
+                    }
+    
+    d_logs_sequachee = {
+        'host'          : 'localhost',
+        'db'            : 'sequachee',
+        'u'             : 'postgres',
+        'p'             : 'usouth',
+        'logfile_schema': 'oms_logfiles',
+        'archive_schema': 'oms_archives',
+        'renameFile'    : True,
+        'moveFile'      : True,
+        'archive'       : True,
+        'truncate'      : False,
+        'oms_log_path'  : {'objectmodel': r'C:\oms_logs\sequachee\ObjectModel\objectmodel.log',
+                           'omsclient': r'C:\oms_logs\sequachee\OMSClient\omsclient.log',
+                           'savedata': r'C:\oms_logs\sequachee\SaveData\savedata.log',
+                           'integrationservice': r'C:\oms_logs\sequachee\IntegrationService\FuturaOMS_IntegrationServiceLog.txt',
+                           'integrationservicecontrol': r'C:\oms_logs\sequachee\IntegrationService\FuturaOMS_Integration_Service_Control_LOG.txt',
+                           'upn': r'C:\oms_logs\sequachee\UPN\FuturaOMS_UPN.txt',
+                           'crc': r'C:\oms_logs\sequachee\CRC\FuturaOMS_CRC.txt'
+                           }
+                    }
     """
     # assign the active path dictionary before running
     """
-    d_logs = d_logs_homer
+    d_logs = d_logs_coweta_fayette
     
     
     ### Should be no need to modify anything below this line ###

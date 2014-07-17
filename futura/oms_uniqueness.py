@@ -214,7 +214,7 @@ class checkUniqueness():
     
 if __name__ == '__main__':
     # Create Postgres Connection Object
-    c = checkUniqueness('localhost', 'coweta-fayette', 'postgres', 'usouth')
+    c = checkUniqueness('localhost', 'sequachee', 'postgres', 'usouth')
     # Set Working Schema & Table to receive data 
     c.schema = 'public'
     c.resultSchema = 'oms_logfiles'
@@ -223,9 +223,13 @@ if __name__ == '__main__':
     # Check for table to receive data
     # Truncate if table Exists
     if c.tableExist():
+        print('Table '  + c.resultTableName + ' exists and will be truncated!')
         c.tableTruncate()
+        print('Truncate Successful')
     else:
+        print('Table '  + c.resultTableName + ' does not exists but will be created!')
         c.tableCreate()
+        print('Table ' + c.resultTableName + ' created!')
     # Get all OMS Tables in public schema
     # Includes NEW tables for exported data
     try:
